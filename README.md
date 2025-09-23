@@ -1,7 +1,6 @@
-quickreply-min
-==============
+# CaiSend - QuickReply 最小化快速回复工具
 
-Minimal quick reply assistant for Windows.
+Minimal quick reply assistant for Windows. 自动回复工具
 
 Run:
 
@@ -12,8 +11,6 @@ Hotkeys (defaults):
 - Alt+` show suggestions
 - Ctrl+Alt+R reload phrases.json
 - Ctrl+Alt+Enter toggle auto send
-
-# QuickReply - 最小化快速回复工具
 
 一个轻量级的快速回复工具，仅使用 Python 标准库 + keyboard + pyperclip，避免复杂的 UIA/WinAPI 依赖。
 
