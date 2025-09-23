@@ -1,0 +1,35 @@
+{
+  "user": {
+    "theme": "dark",
+    "top_k": 5,
+    "target_keywords": ["易翻译", "微信", "QQ", "企业微信", "WeChat", "Telegram"],
+    "hotkeys": {
+      "show": "alt+`",
+      "reload": "ctrl+alt+r",
+      "toggle_send": "ctrl+alt+enter"
+    }
+  },
+  "app": {
+    "service_path": "C:/dev/reply-recosvc",
+    "api_endpoints": {
+      "ws": "ws://127.0.0.1:7799",
+      "recommend": "http://127.0.0.1:7788/recommend",
+      "ingest": "http://127.0.0.1:7788/ingest",
+      "phrases": "http://127.0.0.1:7788/phrases",
+      "health": "http://127.0.0.1:7788/health",
+      "metrics": "http://127.0.0.1:7788/metrics"
+    },
+    "security": {
+      "token": "",
+      "allow_origins": ["*"],
+      "timeout": 10
+    }
+  },
+  "cdp": {
+    "host": "127.0.0.1",
+    "port": null,
+    "range": "9222-9333",
+    "timeout": 0.5,
+    "max_workers": 24
+  }
+}

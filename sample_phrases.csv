@@ -1,0 +1,11 @@
+id,template,category,tags
+welcome_new,"欢迎新用户！首次购买享9折优惠，使用优惠码：NEW2024",欢迎,欢迎,新用户,优惠
+stock_check,"让我为您查询库存...{product}目前有{quantity}件现货",库存查询,库存,查询,现货
+size_guide,"尺码建议：{measurements}，建议选择{recommended_size}",尺码指导,尺码,建议,指导
+complaint_handle,"对于您遇到的问题，我深表歉意。我会立即上报处理，确保给您满意答复",投诉处理,投诉,处理,道歉
+vip_service,"尊敬的VIP客户，您享有专属服务：优先发货、专属客服、积分翻倍",VIP服务,VIP,专属,服务
+return_policy,"退换货政策：7天无理由退货，商品完好包装完整即可，运费由我们承担",退换货,政策,退货,运费
+technical_support,"技术问题我来协助：请描述具体现象，我会提供解决方案或安排工程师",技术支持,技术,支持,工程师
+membership_benefits,"会员特权：生日礼品、专享价格、新品优先购、积分兑换礼品",会员权益,会员,特权,权益
+urgent_processing,"您的问题已标记为紧急处理，我会持续跟进，有进展立即通知您",紧急处理,紧急,跟进,通知
+satisfaction_survey,"服务结束后，希望您能给个评价，您的意见是我们改进的动力",满意度调查,评价,满意度,改进
