@@ -1,0 +1,24 @@
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './slices/authSlice';
+import chatReducer from './slices/chatSlice';
+import messageReducer from './slices/messageSlice';
+import uiReducer from './slices/uiSlice';
+
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    chat: chatReducer,
+    message: messageReducer,
+    ui: uiReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['message/addMessage', 'chat/updateChat'],
+        ignoredPaths: ['message.messages', 'chat.chats'],
+      },
+    }),
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
