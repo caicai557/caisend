@@ -19,6 +19,7 @@ const Message = require('./Message')(sequelize);
 const ChatMember = require('./ChatMember')(sequelize);
 const File = require('./File')(sequelize);
 const Contact = require('./Contact')(sequelize);
+const ReplyTemplate = require('./ReplyTemplate')(sequelize);
 
 // Define associations
 // User associations
@@ -53,6 +54,10 @@ File.belongsTo(User, { foreignKey: 'uploaded_by', as: 'uploader' });
 Contact.belongsTo(User, { foreignKey: 'user_id', as: 'owner' });
 Contact.belongsTo(User, { foreignKey: 'contact_user_id', as: 'contactUser' });
 
+// ReplyTemplate associations
+ReplyTemplate.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+ReplyTemplate.belongsTo(Chat, { foreignKey: 'chat_id', as: 'chat' });
+
 module.exports = {
   sequelize,
   User,
@@ -60,5 +65,6 @@ module.exports = {
   Message,
   ChatMember,
   File,
-  Contact
+  Contact,
+  ReplyTemplate
 };

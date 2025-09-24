@@ -13,6 +13,7 @@ const userRoutes = require('./routes/users');
 const chatRoutes = require('./routes/chats');
 const messageRoutes = require('./routes/messages');
 const fileRoutes = require('./routes/files');
+const smartReplyRoutes = require('./routes/smartReply');
 const socketHandler = require('./socket/socketHandler');
 const { authenticateSocket } = require('./middleware/auth');
 
@@ -57,6 +58,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/smart-reply', smartReplyRoutes);
 
 // Socket.IO authentication
 io.use(authenticateSocket);

@@ -17,6 +17,7 @@ import {
   Reply,
   Edit,
 } from '@mui/icons-material';
+import SmartReplySettings from '../SmartReply/SmartReplySettings';
 import EmojiPicker from 'emoji-picker-react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { sendMessage, editMessage } from '../../store/slices/messageSlice';
@@ -213,6 +214,7 @@ const MessageInput: React.FC = () => {
 
       {/* Input field */}
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
+        <SmartReplySettings />
         <IconButton onClick={() => fileInputRef.current?.click()}>
           <AttachFile />
         </IconButton>
