@@ -1,0 +1,424 @@
+
+> telegram-web-auto-reply@1.0.0 dev C:\Users\hybnb\Desktop\xiaohao\telegram-web-auto-reply
+> vite
+
+
+  [32m[1mVITE[22m v7.1.9[39m  [2mready in [0m[1m317[22m[2m[0m ms[22m
+
+  [32m鉃?[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[2m  [32m鉃?[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m[32m  鉃?[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[36mvite v7.1.9 [32mbuilding for development...[36m[39m
+[36m
+watching for file changes...[39m
+[36mvite v7.1.9 [32mbuilding for development...[36m[39m
+[36m
+watching for file changes...[39m
+[36m
+build started...[39m
+[36m
+build started...[39m
+(node:21264) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/hybnb/Desktop/xiaohao/telegram-web-auto-reply/postcss.config.js?t=1762248702885 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\hybnb\Desktop\xiaohao\telegram-web-auto-reply\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+transforming...
+[32m鉁?[39m 4 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist-electron/preload/[22m[36mindex.js  [39m[1m[2m29.74 kB[22m[1m[22m[2m 鈹?gzip: 7.25 kB[22m
+[36mbuilt in 1292ms.[39m
+[32m鉁?[39m 130 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist-electron/main/[22m[36mindex.js  [39m[1m[2m374.36 kB[22m[1m[22m[2m 鈹?gzip: 76.10 kB[22m
+[36mbuilt in 1935ms.[39m
+
+[Database] 鍒濆鍖栨暟鎹簱锛堥檷绾фā寮忥級...
+[Database] 浣跨敤闄嶇骇妯″紡锛圢ullDatabase锛変互閬垮厤鍘熺敓妯″潡渚濊禆闂
+[Database] 鏁版嵁搴撳垵濮嬪寲瀹屾垚锛堥檷绾фā寮忥級
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS sanitization_rules (
+          id TEXT PRIMARY KEY,
+          na...
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS sanitization_rule_sets (
+          id TEXT PRIMARY KEY,
+        ...
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS rule_usage_stats (
+          rule_id TEXT PRIMARY KEY,
+         ...
+[SanitizationRuleManager] 鏁版嵁搴撳垵濮嬪寲瀹屾垚
+[NullDatabase] prepare: 
+        SELECT * FROM sanitization_rule_sets 
+        WHERE is_default = 1 AND is_active = 1
+      ...
+[NullDatabase] get with args: 0 values: []
+[NullDatabase] Table sanitization_rule_sets has 0 items: []
+[NullDatabase] transaction
+[NullDatabase] executing transaction
+[NullDatabase] prepare: 
+          INSERT INTO sanitization_rule_sets (id, name, description, version, is_active, is_default...
+[NullDatabase] run with args: 6 values: [
+  'd02d6fa9-7be7-45ef-9f68-73c29bd4b420',
+  'Default Sanitization Rules',
+  '榛樿鐨勬晱鎰熸暟鎹劚鏁忚鍒欓泦',
+  '1.0.0',
+  1,
+  1
+]
+[NullDatabase] Inserting into table: sanitization_rule_sets
+[NullDatabase] prepare: 
+          INSERT INTO sanitization_rules (id, name, pattern, replacement, enabled, category, descri...
+[NullDatabase] run with args: 8 values: [
+  'default-api-token',
+  'API Token',
+  '(?:api[_-]?key|token|secret)[\\s:=]+([a-zA-Z0-9\\-_]{20,})',
+  '[API_TOKEN]',
+  1,
+  'token',
+  '妫€娴嬪拰鑴辨晱API浠ょ墝',
+  100
+]
+[NullDatabase] Inserting into table: sanitization_rules
+[NullDatabase] run with args: 8 values: [
+  'default-password',
+  'Password',
+  '(?:password|pwd|pass)[\\s:=]+([^\\s\\n]{3,})',
+  '[PASSWORD]',
+  1,
+  'password',
+  '妫€娴嬪拰鑴辨晱瀵嗙爜',
+  100
+]
+[NullDatabase] Inserting into table: sanitization_rules
+[NullDatabase] run with args: 8 values: [
+  'default-email',
+  'Email Address',
+  '([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})',
+  '[EMAIL]',
+  1,
+  'email',
+  '妫€娴嬪拰鑴辨晱閭鍦板潃',
+  100
+]
+[NullDatabase] Inserting into table: sanitization_rules
+[NullDatabase] run with args: 8 values: [
+  'default-phone',
+  'Phone Number',
+  '(\\+?1?[-.\\s]?)?(\\(?[0-9]{3}\\)?[-.\\s]?[0-9]{3}[-.\\s]?[0-9]{4})',
+  '[PHONE]',
+  1,
+  'phone',
+  '妫€娴嬪拰鑴辨晱鐢佃瘽鍙风爜',
+  100
+]
+[NullDatabase] Inserting into table: sanitization_rules
+[NullDatabase] run with args: 8 values: [
+  'default-ip',
+  'IP Address',
+  '\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b',
+  '[IP_ADDRESS]',
+  1,
+  'ip',
+  '妫€娴嬪拰鑴辨晱IP鍦板潃',
+  100
+]
+[NullDatabase] Inserting into table: sanitization_rules
+[SanitizationRuleManager] 瑙勫垯闆嗗垱寤烘垚鍔? Default Sanitization Rules
+[SanitizationRuleManager] 宸插悓姝?5 涓鍒欏埌LogSanitizer
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS audit_events (
+          id TEXT PRIMARY KEY,
+          timestam...
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS security_alerts (
+          id TEXT PRIMARY KEY,
+          event...
+[NullDatabase] exec: 
+        CREATE INDEX IF NOT EXISTS idx_audit_events_timestamp ON audit_events (timestamp);
+        ...
+[AuditLogger] 鏁版嵁搴撳垵濮嬪寲瀹屾垚
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS log_retention_policies (
+          id TEXT PRIMARY KEY,
+        ...
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS retention_rules (
+          id TEXT PRIMARY KEY,
+          polic...
+[NullDatabase] exec: 
+        CREATE TABLE IF NOT EXISTS log_archives (
+          id TEXT PRIMARY KEY,
+          original...
+[LogRetentionManager] 鏁版嵁搴撳垵濮嬪寲瀹屾垚
+[NullDatabase] prepare: 
+        SELECT lp.*, lr.log_level, lr.log_category, lr.retention_days, 
+               lr.max_size_...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from log_retention_policies
+[LogRetentionManager] 宸插姞杞?0 涓椿璺冧繚鐣欑瓥鐣?[NullDatabase] prepare: 
+      SELECT * FROM rules ORDER BY priority DESC, created_at DESC
+    ...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from rules
+[RuleEngine] Loaded 0 rules
+[Network] 馃寪 搴旂敤缃戠粶浼樺寲...
+[Network] 鉁?缃戠粶浼樺寲鍙傛暟宸插簲鐢?[Main] Electron app initialized
+[Main] 寮€濮嬪簲鐢ㄥ垵濮嬪寲...
+[Main] 骞冲彴: win32, Node: v22.19.0, Electron: 38.2.2
+[Main] ===== 闃舵 1: 妯″潡鍋ュ悍妫€鏌?=====
+============================================================
+妯″潡鍋ュ悍妫€鏌ユ姤鍛?============================================================
+妫€鏌ユ椂闂? 2025-11-04T09:31:45.080Z
+鎬绘ā鍧楁暟: 4
+鍋ュ悍妯″潡: 4
+寮傚父妯″潡: 0
+鎬讳綋鐘舵€? 鉁?鍋ュ悍
+
+璇︾粏妫€鏌ョ粨鏋?
+------------------------------------------------------------
+  鉁?electron
+  鉁?path
+  鉁?database
+  鉁?IPC_CHANNELS
+============================================================
+[Main] 鉁?鍏抽敭妯″潡鍋ュ悍妫€鏌ラ€氳繃
+[Main] ===== 闃舵 2: 鍒涘缓涓荤獥鍙?=====
+[Main] Main window created
+[Main] 鉁?涓荤獥鍙ｅ垱寤烘垚鍔?[Main] ===== 闃舵 3: 鍒濆鍖栨暟鎹簱 =====
+[Main] 鉁?鏁版嵁搴撳垵濮嬪寲鎴愬姛
+[Main] ===== 闃舵 4: 鍒濆鍖栧畨鍏ㄥ瓨鍌↖PC =====
+[SecureStorage] 鈿狅笍 Security features disabled - using fallback mode
+[SecureStorage] 鈿狅笍 All secure storage operations will return errors
+[SecureStorage] 鉁?Fallback IPC handlers registered
+[Main] 鉁?瀹夊叏瀛樺偍IPC鍒濆鍖栨垚鍔?[Main] ===== 闃舵 5: 鍒濆鍖栨棩蹇桰PC =====
+[LoggingIPC] 娉ㄥ唽鏃ュ織IPC澶勭悊鍣?..
+[LoggingIPC] 鏃ュ織IPC澶勭悊鍣ㄦ敞鍐屽畬鎴?[LogRetentionManager] 鍚姩瀹氭湡娓呯悊
+[LogRetentionManager] 淇濈暀绛栫暐搴旂敤瀹屾垚: 鍒犻櫎 0 鏉¤褰? 閲婃斁 0.00 MB, 鍘嬬缉 0 鏉¤褰? 鑰楁椂 0ms
+[LoggingIPC] 鏃ュ織IPC鍒濆鍖栧畬鎴?[Main] 鉁?鏃ュ織IPC鍒濆鍖栨垚鍔?[Main] ===== 闃舵 6: 鍒濆鍖栬处鍙风鐞嗗櫒 =====
+[AccountManager] 馃攧 寮€濮嬫仮澶嶅凡鏈夎处鍙?..
+[NullDatabase] prepare: SELECT * FROM accounts ORDER BY created_at DESC...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from accounts
+[AccountManager] 馃搵 鎵惧埌 0 涓处鍙?[AccountManager] 鉁?娌℃湁闇€瑕佹仮澶嶇殑璐﹀彿
+[Main] 鉁?璐﹀彿绠＄悊鍣ㄥ垵濮嬪寲鎴愬姛
+[Main] ===== 闃舵 7: 鍒濆鍖栨棩蹇椾粨搴撳拰瑙勫垯浠撳簱 =====
+[Main] 鉁?瑙勫垯浠撳簱鍒濆鍖栨垚鍔?[Main] ===== 闃舵 8: 閰嶇疆璐﹀彿绠＄悊鍣?=====
+[Main] 鉁?璐﹀彿绠＄悊鍣ㄧ獥鍙ｅ叧鑱旀垚鍔?[Main] ===== 闃舵 9: 娉ㄥ唽IPC澶勭悊鍣?=====
+[Main] IPC handlers registered
+[Main] 鉁?IPC澶勭悊鍣ㄦ敞鍐屾垚鍔?[Main] ===== 闃舵 10: 璁剧疆浜嬩欢鐩戝惉 =====
+[Main] 鉁?璐﹀彿鐘舵€佺洃鍚缃垚鍔?[Main] ===== 闃舵 11: 鍒濆鍖栬嚜鍔ㄥ寲绯荤粺 =====
+[NullDatabase] prepare: 
+      SELECT * FROM rules ORDER BY priority DESC, created_at DESC
+    ...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from rules
+[RuleEngine] Loaded 0 rules
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = ? 
+      ORDER BY scheduled_at DESC
+    ...
+[NullDatabase] all with args: 1
+[NullDatabase] Returning 0 items from queue_tasks
+[QueueManager] Recovered 0 tasks
+[QueueManager] Started
+[RuleEngine] Started
+[Main] 鉁?瑙勫垯寮曟搸鍚姩鎴愬姛
+[AccountManager] 瑙勫垯寮曟搸宸茶缃?[Main] 鉁?瑙勫垯寮曟搸宸叉敞鍏ュ埌AccountManager
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = ? 
+      ORDER BY scheduled_at DESC
+    ...
+[NullDatabase] all with args: 1
+[NullDatabase] Returning 0 items from queue_tasks
+[QueueManager] Recovered 0 tasks
+[QueueManager] Started
+[Main] 鉁?闃熷垪绠＄悊鍣ㄥ惎鍔ㄦ垚鍔?[AccountManager] 闃熷垪绠＄悊鍣ㄥ凡璁剧疆
+[Main] 鉁?闃熷垪绠＄悊鍣ㄥ凡娉ㄥ叆鍒癆ccountManager
+[NullDatabase] prepare: SELECT * FROM accounts ORDER BY created_at DESC...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from accounts
+[Main] 鉁?娑堟伅澶勭悊璁剧疆鎴愬姛
+[Main] ===== 闃舵 12: 鍚姩鐘舵€佸悓姝ュ櫒 =====
+[AccountManager] 馃攧 鍚姩鐘舵€佸悓姝ュ櫒...
+[AccountManager] 鉁?鐘舵€佸悓姝ュ櫒宸插惎鍔?[Main] 鉁?璐﹀彿鐘舵€佸悓姝ュ櫒宸插惎鍔?[Main] ===== 闃舵 13: 鍒濆鍖栫郴缁熸墭鐩?=====
+No tray state file found, using defaults
+System tray is disabled
+[Main] 鉁?绯荤粺鎵樼洏鍒濆鍖栨垚鍔?[Main] ===================================
+[Main] 鉁撯湏鉁?搴旂敤鍒濆鍖栧畬鎴?鉁撯湏鉁?[Main] ===================================
+[4628:1104/143145.674:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[4628:1104/143145.674:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[Main] Window shown after ready
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[NullDatabase] prepare: 
+      SELECT * FROM queue_tasks 
+      WHERE status = 'pending' 
+      ORDER BY priority DESC, sche...
+[NullDatabase] all with args: 0
+[NullDatabase] Returning 0 items from queue_tasks
+[Main] Application shutting down...
+[QueueManager] Stopped
+[QueueManager] Stopped
+[RuleEngine] Stopped
+[Main] Automation system stopped
+[AccountManager] 馃Ч 寮€濮嬫竻鐞嗚祫婧?..
+[StatusSync] 鈴癸笍  鐘舵€佸悓姝ュ櫒宸插仠姝?[MessageMonitor] 馃Ч 娓呯悊鎵€鏈夌洃鎺?..
+[MessageMonitor] 鉁?娓呯悊瀹屾垚
+[AccountManager] 鉁?娓呯悊瀹屾垚锛圫ession 宸蹭繚鐣欙級
+[NullDatabase] close called
+[Main] Shutdown complete
+错误: 没有找到进程 "4628"。
