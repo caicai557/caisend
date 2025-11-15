@@ -1,0 +1,25 @@
+{
+  "name": "telegram-auto-reply-scripts",
+  "version": "1.0.0",
+  "description": "Telegram Auto Reply 项目脚本工具",
+  "type": "module",
+  "scripts": {
+    "flow:generate": "tsx generate-flow-graph.ts",
+    "flow:scan": "tsx generate-flow-graph.ts scan",
+    "flow:diff": "tsx generate-flow-graph.ts diff",
+    "flow:pr-comment": "tsx generate-flow-graph.ts pr-comment",
+    "validate:flows": "tsx validate-flows.ts",
+    "setup": "npm install && npm run build"
+  },
+  "dependencies": {
+    "graphviz": "^0.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

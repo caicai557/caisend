@@ -1,0 +1,152 @@
+扫描 DevTools 端口 9222~9333...
+已发现端口: 9222
+已锁定 Telegram 页签: http://localhost:8086/index.html#8466967015
+初始frame - 3E171660D6136C396CF3798C079C825B http://localhost:8086/index.html
+注入实时监听成功，开始接收消息...
+[page:log] === 发现消息元素 ===
+[page:log] 消息总数: 88
+[page:log] 前3条消息内容: [
+  {
+    "id": "3555",
+    "text": "Dear user: The bank payment system has been submitted. Due to the large number of withdrawals, pleas",
+    "isOut": true
+  },
+  {
+    "id": "3555",
+    "text": "",
+    "isOut": true
+  },
+  {
+    "id": "3556",
+    "text": "After payment is completed, I will take a screenshot and send it to you, dear\n11:39",
+    "isOut": true
+  }
+]
+[page:log] ===================
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] === 发现消息元素 ===
+[page:log] 消息总数: 30
+[page:log] 前3条消息内容: [
+  {
+    "id": "2780",
+    "text": "1\n15:27",
+    "isOut": true
+  },
+  {
+    "id": "2780",
+    "text": "",
+    "isOut": true
+  },
+  {
+    "id": "2781",
+    "text": "Ok\n15:27",
+    "isOut": false
+  }
+]
+[page:log] ===================
+[page:log] === 发现消息元素 ===
+[page:log] 消息总数: 30
+[page:log] 前3条消息内容: [
+  {
+    "id": "2780",
+    "text": "115:27",
+    "isOut": true
+  },
+  {
+    "id": "2780",
+    "text": "",
+    "isOut": true
+  },
+  {
+    "id": "2781",
+    "text": "Ok15:27",
+    "isOut": false
+  }
+]
+[page:log] ===================
+[page:log] === 发现消息元素 ===
+[page:log] 消息总数: 80
+[page:log] 前3条消息内容: [
+  {
+    "id": "3575",
+    "text": "11:58",
+    "isOut": false
+  },
+  {
+    "id": "3575",
+    "text": "",
+    "isOut": false
+  },
+  {
+    "id": "3577",
+    "text": "Sir screenshot\n11:59",
+    "isOut": false
+  }
+]
+[page:log] ===================
+[page:log] === 发现消息元素 ===
+[page:log] 消息总数: 80
+[page:log] 前3条消息内容: [
+  {
+    "id": "3575",
+    "text": "11:58",
+    "isOut": false
+  },
+  {
+    "id": "3575",
+    "text": "",
+    "isOut": false
+  },
+  {
+    "id": "3577",
+    "text": "Sir screenshot\n11:59",
+    "isOut": false
+  }
+]
+[page:log] ===================
+[page:log] DUMP_JSON_START
+[page:log] []
+[page:log] DUMP_JSON_END
+[page:log] === 发现消息元素 ===
+[page:log] 消息总数: 80
+[page:log] 前3条消息内容: [
+  {
+    "id": "3575",
+    "text": "11:58",
+    "isOut": false
+  },
+  {
+    "id": "3575",
+    "text": "",
+    "isOut": false
+  },
+  {
+    "id": "3577",
+    "text": "Sir screenshot\n11:59",
+    "isOut": false
+  }
+]
+[page:log] ===================
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:warning] COMPONENTS Array(1)
+[page:warning] MEMOS Array(0)
+[page:log] Object
+[page:warning] COMPONENTS Array(1)
+[page:warning] MEMOS Array(0)
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
+[page:log] Object
