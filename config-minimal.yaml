@@ -1,0 +1,13 @@
+# Teleflow 最小配置示例
+# 仅包含 MVP 必需的配置项
+
+version: "1.0"
+
+accounts:
+  - name: "minimal_account"
+    monitor_chats: ["target_user"]
+    rules:
+      - keywords: ["hello"]
+        reply_text: "Hi there!"
+        fixed_delay: 1
+        random_delay_max: 2
