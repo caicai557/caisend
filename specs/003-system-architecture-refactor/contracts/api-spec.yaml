@@ -1,0 +1,809 @@
+openapi: 3.0.3
+info:
+  title: TeleFlow Desktop API
+  description: IPC API specification for TeleFlow Desktop application
+  version: 1.0.0
+  contact:
+    name: TeleFlow Team
+    email: support@teleflow.dev
+
+servers:
+  - url: ipc://localhost
+    description: Electron IPC Channel
+
+tags:
+  - name: Account
+    description: Account management operations
+  - name: Message
+    description: Message handling operations
+  - name: Translation
+    description: Translation service operations
+  - name: Rule
+    description: Automation rule operations
+  - name: Task
+    description: Task scheduling operations
+  - name: Session
+    description: Chat session operations
+  - name: Contact
+    description: Contact management operations
+
+paths:
+  # Account Management
+  /account/create:
+    post:
+      tags: [Account]
+      summary: Create new account
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '200':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /account/list:
+    get:
+      tags: [Account]
+      summary: List all accounts
+      operationId: listAccounts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AccountStatus'
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+
+  /account/{accountId}/switch:
+    post:
+      tags: [Account]
+      summary: Switch to account
+      operationId: switchAccount
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Switched successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /account/{accountId}/status:
+    put:
+      tags: [Account]
+      summary: Update account status
+      operationId: updateAccountStatus
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/AccountStatus'
+      responses:
+        '200':
+          description: Status updated
+
+  # Message Operations
+  /message/send:
+    post:
+      tags: [Message]
+      summary: Send message
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  /message/list:
+    get:
+      tags: [Message]
+      summary: List messages
+      operationId: listMessages
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: chatId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  total:
+                    type: integer
+
+  /message/translate:
+    post:
+      tags: [Translation]
+      summary: Translate message
+      operationId: translateMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TranslateRequest'
+      responses:
+        '200':
+          description: Translation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranslationResult'
+
+  # Rule Operations  
+  /rule/create:
+    post:
+      tags: [Rule]
+      summary: Create automation rule
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleRequest'
+      responses:
+        '200':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+
+  /rule/list:
+    get:
+      tags: [Rule]
+      summary: List rules
+      operationId: listRules
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+
+  /rule/{ruleId}/toggle:
+    put:
+      tags: [Rule]
+      summary: Enable/disable rule
+      operationId: toggleRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Rule toggled
+
+  # Task Operations
+  /task/schedule:
+    post:
+      tags: [Task]
+      summary: Schedule task
+      operationId: scheduleTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleTaskRequest'
+      responses:
+        '200':
+          description: Task scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  /task/list:
+    get:
+      tags: [Task]
+      summary: List tasks
+      operationId: listTasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+
+  /task/{taskId}/cancel:
+    post:
+      tags: [Task]
+      summary: Cancel task
+      operationId: cancelTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task cancelled
+
+  # Session Operations
+  /session/list:
+    get:
+      tags: [Session]
+      summary: List chat sessions
+      operationId: listSessions
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+
+  /session/{sessionId}/markRead:
+    post:
+      tags: [Session]
+      summary: Mark messages as read
+      operationId: markAsRead
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messageIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Marked as read
+
+  # Contact Operations
+  /contact/list:
+    get:
+      tags: [Contact]
+      summary: List contacts
+      operationId: listContacts
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+
+  /contact/{contactId}/update:
+    put:
+      tags: [Contact]
+      summary: Update contact
+      operationId: updateContact
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContactRequest'
+      responses:
+        '200':
+          description: Contact updated
+
+components:
+  schemas:
+    # Account Schemas
+    Account:
+      type: object
+      required: [id, name, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        username:
+          type: string
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        settings:
+          $ref: '#/components/schemas/AccountSettings'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastActiveAt:
+          type: string
+          format: date-time
+
+    AccountStatus:
+      type: string
+      enum: [offline, connecting, online, error, suspended]
+
+    AccountSettings:
+      type: object
+      properties:
+        autoReconnect:
+          type: boolean
+        notificationsEnabled:
+          type: boolean
+        translationEnabled:
+          type: boolean
+        defaultLanguage:
+          type: string
+
+    CreateAccountRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        username:
+          type: string
+
+    # Message Schemas
+    Message:
+      type: object
+      required: [id, accountId, chatId, content, timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+        chatId:
+          type: string
+        content:
+          type: string
+        sender:
+          $ref: '#/components/schemas/MessageSender'
+        timestamp:
+          type: string
+          format: date-time
+        type:
+          $ref: '#/components/schemas/MessageType'
+        isRead:
+          type: boolean
+        isTranslated:
+          type: boolean
+
+    MessageSender:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        isBot:
+          type: boolean
+        isSelf:
+          type: boolean
+
+    MessageType:
+      type: string
+      enum: [text, image, video, audio, document, sticker, location, contact]
+
+    SendMessageRequest:
+      type: object
+      required: [accountId, chatId, content]
+      properties:
+        accountId:
+          type: string
+        chatId:
+          type: string
+        content:
+          type: string
+        replyTo:
+          type: string
+        translate:
+          type: boolean
+        targetLanguage:
+          type: string
+
+    # Translation Schemas
+    TranslateRequest:
+      type: object
+      required: [text, targetLang]
+      properties:
+        text:
+          type: string
+        sourceLang:
+          type: string
+        targetLang:
+          type: string
+        engine:
+          $ref: '#/components/schemas/TranslationEngine'
+
+    TranslationResult:
+      type: object
+      properties:
+        originalText:
+          type: string
+        translatedText:
+          type: string
+        sourceLang:
+          type: string
+        targetLang:
+          type: string
+        engine:
+          $ref: '#/components/schemas/TranslationEngine'
+        confidence:
+          type: number
+
+    TranslationEngine:
+      type: string
+      enum: [google, deepl, baidu, libre, cached]
+
+    # Rule Schemas
+    Rule:
+      type: object
+      required: [id, name, conditions, actions]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleCondition'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleAction'
+
+    RuleCondition:
+      type: object
+      required: [type, operator, value]
+      properties:
+        type:
+          type: string
+          enum: [keyword, regex, sender, chat, time, messageType]
+        operator:
+          type: string
+          enum: [equals, contains, startsWith, endsWith, matches, in, notIn, between]
+        value:
+          type: any
+        caseSensitive:
+          type: boolean
+
+    RuleAction:
+      type: object
+      required: [type, params]
+      properties:
+        type:
+          type: string
+          enum: [reply, forward, markRead, translate, delete, notify, webhook, script]
+        params:
+          type: object
+        delay:
+          type: integer
+        randomDelay:
+          type: integer
+
+    CreateRuleRequest:
+      type: object
+      required: [name, conditions, actions]
+      properties:
+        accountId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        priority:
+          type: integer
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleCondition'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleAction'
+
+    # Task Schemas
+    Task:
+      type: object
+      required: [id, type, status]
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/TaskType'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          type: integer
+        payload:
+          type: object
+        schedule:
+          $ref: '#/components/schemas/TaskSchedule'
+        execution:
+          $ref: '#/components/schemas/TaskExecution'
+
+    TaskType:
+      type: string
+      enum: [sendMessage, bulkSend, scheduledMessage, importContacts, exportData, backup]
+
+    TaskStatus:
+      type: string
+      enum: [pending, queued, running, paused, completed, failed, cancelled]
+
+    TaskSchedule:
+      type: object
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        cronExpression:
+          type: string
+        timezone:
+          type: string
+        endDate:
+          type: string
+          format: date-time
+
+    TaskExecution:
+      type: object
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        error:
+          type: string
+
+    ScheduleTaskRequest:
+      type: object
+      required: [type, payload]
+      properties:
+        accountId:
+          type: string
+        type:
+          $ref: '#/components/schemas/TaskType'
+        payload:
+          type: object
+        schedule:
+          $ref: '#/components/schemas/TaskSchedule'
+
+    # Session Schemas
+    Session:
+      type: object
+      required: [id, accountId, chatId, title]
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        chatId:
+          type: string
+        chatType:
+          type: string
+          enum: [private, group, channel, bot]
+        title:
+          type: string
+        unreadCount:
+          type: integer
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+        isPinned:
+          type: boolean
+        isMuted:
+          type: boolean
+        isArchived:
+          type: boolean
+
+    # Contact Schemas
+    Contact:
+      type: object
+      required: [id, accountId, telegramId, displayName]
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        telegramId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        avatar:
+          type: string
+        isBot:
+          type: boolean
+        relationship:
+          type: string
+          enum: [vip, important, normal, blacklist]
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+
+    UpdateContactRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        relationship:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+
+    # Error Schemas
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

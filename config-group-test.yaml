@@ -1,0 +1,68 @@
+version: "1.0"
+description: "群组功能测试配置 - 用于验证 Phase 6 群组支持功能"
+
+accounts:
+  - name: test-with-groups
+    # 浏览器数据目录
+    browser_data_dir: "./browser_data/test-with-groups"
+    
+    # 监控聊天列表（包括群组）
+    monitor_chats:
+      - "Saved Messages"  # 个人收藏（用于测试）
+      # 加入群组后，群组名称会自动出现在聊天列表中
+    
+    # 群组邀请配置 - Phase 6 新功能
+    group_invites:
+      # 方式1: 简单字符串（仅邀请链接）
+      - "https://t.me/+YourGroupInviteLinkHere"
+      
+      # 方式2: 完整配置（带欢迎消息）
+      - invite_link: "https://t.me/joinchat/AnotherInviteLink"
+        welcome_message: "Hello everyone! I'm a bot. Happy to join!"
+        enabled: true
+      
+      # 方式3: 禁用的邀请（不会加入）
+      - invite_link: "https://t.me/+DisabledGroupLink"
+        welcome_message: "This won't be sent"
+        enabled: false
+    
+    # 回复规则（对群组和私聊都生效）
+    rules:
+      - keywords:
+          - "hello"
+          - "hi"
+        reply_text: "Hi there! This is an auto-reply from the bot."
+        fixed_delay: 2
+        random_delay_max: 3
+        case_sensitive: false
+        enabled: true
+      
+      - keywords:
+          - "help"
+          - "帮助"
+        reply_text: "I'm a Telegram bot. Type 'hello' to test!"
+        fixed_delay: 1
+        random_delay_max: 2
+        case_sensitive: false
+        enabled: true
+
+# 默认账号
+default_account: "test-with-groups"
+
+# 日志配置
+logging:
+  level: INFO
+  file: ./logs/teleflow-group.log
+  max_file_size: 10MB
+  backup_count: 7
+
+# 浏览器配置
+browser:
+  headless: false  # 手动测试时显示浏览器
+  timeout: 30
+
+# 运行时配置
+runtime:
+  debug: false
+  check_interval: 3.0
+  max_retry_count: 3

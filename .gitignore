@@ -124,6 +124,18 @@ data/*.db
 # Project specific
 result.json
 
+# Teleflow specific
+browser_data/
+logs/
+config.yaml
+test_config.yaml
+*.log
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Large executable files
 *.exe
 *.msi
