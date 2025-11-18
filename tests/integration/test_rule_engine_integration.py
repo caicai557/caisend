@@ -1,181 +1,215 @@
-"""规则引擎集成测试"""
+"""规则引擎集成测试（独立于外部配置文件）"""
 
-import pytest
+from __future__ import annotations
+
 from pathlib import Path
+from typing import List
+
+import pytest  # type: ignore[import-not-found]
 
 from teleflow.config.loader import ConfigLoader
-from teleflow.rules.engine import RuleEngine, MatchResult
+from teleflow.models.account import Account
+from teleflow.models.config import (
+    TeleflowConfig,
+    LoggingConfig,
+    BrowserConfig,
+    RuntimeConfig,
+)
+from teleflow.models.rule import Rule
+from teleflow.rules.engine import MatchResult, RuleEngine
 
 
-class TestRuleEngineIntegration:
-    """规则引擎集成测试"""
-    
-    def setup_method(self):
-        """每个测试方法前的设置"""
-        self.config_loader = ConfigLoader()
-        
-    def test_load_config_and_create_rule_engine(self):
-        """测试从配置文件加载并创建规则引擎"""
-        # 加载配置
-        config = self.config_loader.load_from_file("config.yaml")
-        
-        # 验证配置结构
-        assert len(config.accounts) > 0
-        assert len(config.accounts[0].rules) > 0
-        
-        # 创建规则引擎
-        engine = RuleEngine(config.accounts[0])
-        
-        # 验证引擎初始化
-        assert engine.account == config.accounts[0]
-        assert len(engine.get_effective_rules()) > 0
-        
-    def test_rule_engine_with_real_config(self):
-        """测试规则引擎使用真实配置文件"""
-        # 加载配置
-        config = self.config_loader.load_from_file("config.yaml")
-        engine = RuleEngine(config.accounts[0])
-        
-        # 测试真实规则匹配
-        # 假设配置中有 "hello" 关键词规则
-        result = engine.process_message("hello there")
-        
-        # 验证结果结构
-        assert isinstance(result, MatchResult)
-        assert hasattr(result, 'matched')
-        assert hasattr(result, 'rule')
-        assert hasattr(result, 'reply_text')
-        assert hasattr(result, 'delay')
-        assert hasattr(result, 'matched_keyword')
-        
-    def test_rule_engine_with_minimal_config(self):
-        """测试规则引擎使用最小配置"""
-        # 加载最小配置
-        config = self.config_loader.load_from_file("config-minimal.yaml")
-        engine = RuleEngine(config.accounts[0])
-        
-        # 验证最小配置的规则引擎工作
-        result = engine.process_message("test message")
-        
-        # 应该有匹配结果（基于最小配置中的规则）
-        assert isinstance(result, MatchResult)
-        
-    def test_config_update_and_rule_engine_sync(self):
-        """测试配置更新和规则引擎同步"""
-        # 加载初始配置
-        config = self.config_loader.load_from_file("config-minimal.yaml")
-        engine = RuleEngine(config.accounts[0])
-        
-        # 记录初始状态
-        initial_rules_count = len(engine.get_effective_rules())
-        
-        # 修改配置 - 创建 Rule 对象而不是字典
-        from teleflow.models.rule import Rule
-        new_rule = Rule(
-            keywords=["new_test"],
-            reply_text="New reply!",
-            fixed_delay=1,
-            random_delay_max=0,
-            case_sensitive=False,
-            enabled=True
-        )
-        
-        config.accounts[0].rules.append(new_rule)
-        
-        # 更新规则引擎
-        engine.update_account(config.accounts[0])
-        
-        # 验证更新
-        assert len(engine.get_effective_rules()) == initial_rules_count + 1
-        
-        # 测试新规则
-        result = engine.process_message("new_test")
-        assert result.matched
-        assert result.reply_text == "New reply!"
-        
-    def test_rule_engine_with_disabled_rules(self):
-        """测试规则引擎处理禁用的规则"""
-        # 加载配置
-        config = self.config_loader.load_from_file("config.yaml")
-        
-        # 禁用所有规则
-        for rule in config.accounts[0].rules:
-            rule.enabled = False
-            
-        # 创建规则引擎
-        engine = RuleEngine(config.accounts[0])
-        
-        # 测试消息处理（应该没有匹配）
-        result = engine.process_message("hello there")
-        assert not result.matched
-        assert result.rule is None
-        assert result.reply_text is None
-        
-    def test_rule_engine_case_sensitivity_from_config(self):
-        """测试规则引擎从配置中读取大小写敏感性设置"""
-        # 加载配置
-        config = self.config_loader.load_from_file("config.yaml")
-        
-        # 查找区分大小写的规则（如果存在）
-        case_sensitive_rule = None
-        for rule in config.accounts[0].rules:
-            if rule.case_sensitive:
-                case_sensitive_rule = rule
-                break
-                
-        if case_sensitive_rule:
-            engine = RuleEngine(config.accounts[0])
-            
-            # 测试大小写敏感性
-            keyword = case_sensitive_rule.keywords[0]
-            
-            # 精确匹配应该成功
-            result = engine.process_message(keyword)
-            assert result.matched
-            
-            # 大小写不匹配应该失败
-            result = engine.process_message(keyword.upper())
-            if keyword != keyword.upper():  # 只有当大小写不同时才测试
-                assert not result.matched
-                
-    def test_rule_engine_delay_from_config(self):
-        """测试规则引擎从配置中读取延迟设置"""
-        # 加载配置
-        config = self.config_loader.load_from_file("config.yaml")
-        engine = RuleEngine(config.accounts[0])
-        
-        # 查找有延迟设置的规则
-        rule_with_delay = None
-        for rule in config.accounts[0].rules:
-            if rule.fixed_delay > 0 or rule.random_delay_max > 0:
-                rule_with_delay = rule
-                break
-                
-        if rule_with_delay:
-            # 触发规则匹配
-            keyword = rule_with_delay.keywords[0]
-            result = engine.process_message(keyword)
-            
-            # 验证延迟计算
-            assert result.matched
-            min_delay, max_delay = rule_with_delay.get_total_delay_range()
-            assert min_delay <= result.delay <= max_delay
-            
-    def test_multiple_accounts_rule_engines(self):
-        """测试多账号的规则引擎"""
-        # 加载配置（假设有多个账号）
-        config = self.config_loader.load_from_file("config.yaml")
-        
-        # 为每个账号创建规则引擎
-        engines = []
-        for account in config.accounts:
-            engine = RuleEngine(account)
-            engines.append(engine)
-            
-        # 验证每个引擎独立工作
-        assert len(engines) == len(config.accounts)
-        
-        # 测试每个引擎
-        for i, engine in enumerate(engines):
-            assert engine.account == config.accounts[i]
-            assert len(engine.get_effective_rules()) >= 0
+def _create_rule(
+    keywords: List[str],
+    reply_text: str,
+    *,
+    fixed_delay: int = 0,
+    random_delay_max: int = 0,
+    case_sensitive: bool = False,
+    enabled: bool = True,
+    use_regex: bool = False,
+    next_id: str | None = None,
+    description: str | None = None,
+) -> Rule:
+    """创建测试用 Rule 对象"""
+    return Rule(
+        keywords=keywords,
+        reply_text=reply_text,
+        fixed_delay=fixed_delay,
+        random_delay_max=random_delay_max,
+        case_sensitive=case_sensitive,
+        enabled=enabled,
+        use_regex=use_regex,
+        next_id=next_id,
+        description=description,
+    )
+
+
+def _create_account(name: str, rules: List[Rule]) -> Account:
+    """创建测试账号配置"""
+    return Account(
+        name=name,
+        browser_data_dir=None,
+        monitor_chats=["@test"],
+        rules=rules,
+    )
+
+
+def _create_config(accounts: List[Account]) -> TeleflowConfig:
+    """创建根配置"""
+    return TeleflowConfig(
+        version="1.0",
+        accounts=accounts,
+        default_account=accounts[0].name if accounts else None,
+        logging=LoggingConfig(),
+        browser=BrowserConfig(),
+        runtime=RuntimeConfig(),
+    )
+
+
+@pytest.fixture
+def config_loader() -> ConfigLoader:
+    return ConfigLoader()
+
+
+@pytest.fixture
+def base_rule() -> Rule:
+    return _create_rule(["hello", "hi"], "Hello there!", fixed_delay=1, random_delay_max=2)
+
+
+@pytest.fixture
+def base_account(base_rule: Rule) -> Account:
+    return _create_account("test_account", [base_rule])
+
+
+@pytest.fixture
+def sample_config(base_account: Account) -> TeleflowConfig:
+    return _create_config([base_account])
+
+
+@pytest.fixture
+def config_file(tmp_path: Path) -> Path:
+    """生成最小 YAML 配置供 load_from_file 验证使用"""
+    config_path = tmp_path / "config.yaml"
+    config_yaml = """
+version: "1.0"
+accounts:
+  - name: "file_account"
+    monitor_chats: ["@test"]
+    rules:
+      - keywords: ["hello"]
+        reply_text: "Hello from file"
+        fixed_delay: 1
+        random_delay_max: 1
+default_account: "file_account"
+"""
+    config_path.write_text(config_yaml.strip(), encoding="utf-8")
+    return config_path
+
+
+def test_load_config_and_create_rule_engine(config_loader: ConfigLoader, config_file: Path):
+    """验证从文件加载并创建规则引擎"""
+    config = config_loader.load_from_file(config_file)
+
+    assert config.accounts
+    assert config.accounts[0].rules
+
+    engine = RuleEngine(config.accounts[0])
+    assert engine.account == config.accounts[0]
+    assert engine.get_effective_rules()
+
+
+def test_rule_engine_with_real_config(sample_config: TeleflowConfig):
+    """使用内联配置验证匹配结构"""
+    engine = RuleEngine(sample_config.accounts[0])
+    result = engine.process_message("hello there")
+
+    assert isinstance(result, MatchResult)
+    assert hasattr(result, "matched")
+    assert hasattr(result, "rule")
+    assert hasattr(result, "reply_text")
+    assert hasattr(result, "delay")
+    assert hasattr(result, "matched_keyword")
+
+
+def test_rule_engine_with_minimal_config():
+    """最小配置也能工作"""
+    rule = _create_rule(["test"], "OK")
+    account = _create_account("minimal", [rule])
+    config = _create_config([account])
+
+    engine = RuleEngine(config.accounts[0])
+    result = engine.process_message("test message")
+
+    assert isinstance(result, MatchResult)
+
+
+def test_config_update_and_rule_engine_sync(sample_config: TeleflowConfig):
+    """更新配置后规则引擎同步"""
+    engine = RuleEngine(sample_config.accounts[0])
+    initial_count = len(engine.get_effective_rules())
+
+    new_rule = _create_rule(["new_test"], "New reply!", fixed_delay=1)
+    sample_config.accounts[0].rules.append(new_rule)
+
+    engine.update_account(sample_config.accounts[0])
+
+    assert len(engine.get_effective_rules()) == initial_count + 1
+
+    result = engine.process_message("new_test")
+    assert result.matched
+    assert result.reply_text == "New reply!"
+
+
+def test_rule_engine_with_disabled_rules(sample_config: TeleflowConfig):
+    """禁用规则后不应匹配"""
+    for rule in sample_config.accounts[0].rules:
+        rule.enabled = False
+
+    engine = RuleEngine(sample_config.accounts[0])
+    result = engine.process_message("hello there")
+
+    assert not result.matched
+    assert result.rule is None
+    assert result.reply_text is None
+
+
+def test_rule_engine_case_sensitivity_from_config():
+    """验证大小写敏感配置生效"""
+    sensitive_rule = _create_rule(["Hello"], "Case sensitive", case_sensitive=True)
+    insensitive_rule = _create_rule(["hi"], "Hi")
+    account = _create_account("case_account", [sensitive_rule, insensitive_rule])
+    config = _create_config([account])
+
+    engine = RuleEngine(config.accounts[0])
+
+    assert engine.process_message("Hello").matched
+    assert not engine.process_message("HELLO").matched
+
+
+def test_rule_engine_delay_from_config(base_account: Account):
+    """验证延迟范围来自配置"""
+    rule = _create_rule(["delay"], "Delay", fixed_delay=2, random_delay_max=3)
+    base_account.rules.append(rule)
+    config = _create_config([base_account])
+
+    engine = RuleEngine(config.accounts[0])
+    result = engine.process_message("delay")
+
+    assert result.matched
+    min_delay, max_delay = rule.get_total_delay_range()
+    assert min_delay <= result.delay <= max_delay
+
+
+def test_multiple_accounts_rule_engines(base_rule: Rule):
+    """多个账号的规则引擎彼此独立"""
+    second_rule = _create_rule(["account2"], "Hi from account2")
+    account1 = _create_account("account1", [base_rule])
+    account2 = _create_account("account2", [second_rule])
+    config = _create_config([account1, account2])
+
+    engines = [RuleEngine(account) for account in config.accounts]
+
+    assert len(engines) == 2
+    assert engines[0].process_message("hello").matched
+    assert engines[1].process_message("account2").matched

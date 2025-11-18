@@ -1,7 +1,7 @@
 """账号配置数据模型"""
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -22,9 +22,9 @@ class Account(BaseModel):
         default_factory=list,
         description="关键词回复规则列表"
     )
-    group_invites: List[str] = Field(
+    group_invites: List[Union[str, "GroupInvite"]] = Field(
         default_factory=list,
-        description="群组邀请链接列表（v1.1+ 功能）"
+        description="群组邀请链接列表（v1.1+ 功能），支持字符串或 GroupInvite 对象"
     )
     
     @field_validator("browser_data_dir", mode="before")
@@ -53,5 +53,6 @@ class Account(BaseModel):
         extra = "forbid"  # 禁止额外字段
 
 
-# 导入 Rule 模型（避免循环导入）
+# 导入其他模型（避免循环导入）
 from .rule import Rule
+from .group import GroupInvite

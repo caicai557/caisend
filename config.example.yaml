@@ -1,0 +1,75 @@
+# Teleflow 配置文件示例
+# 复制此文件为 config.yaml 并根据需要修改
+
+accounts:
+  # 账号 1: 演示账号
+  - name: demo-account
+    # 浏览器数据目录（可选，默认为 ./browser_data/{账号名}）
+    browser_data_dir: ./browser_data/demo-account
+    
+    # 监控的聊天列表
+    monitor_chats:
+      - Saved Messages    # 收藏夹
+      - "@username"       # 用户名（需要用引号）
+      # - "123456789"     # 聊天 ID
+    
+    # 关键词回复规则
+    rules:
+      # 规则 1: 问候语
+      - keywords:
+          - hello
+          - hi
+          - 你好
+          - 嗨
+        reply_text: "你好！很高兴见到你 👋"
+        fixed_delay_seconds: 3
+        random_delay_max_seconds: 5
+        case_sensitive: false
+      
+      # 规则 2: 帮助信息
+      - keywords:
+          - help
+          - 帮助
+          - "?"
+        reply_text: |
+          我可以帮你什么？
+          
+          可用命令：
+          - help: 显示此帮助
+          - status: 查看状态
+        fixed_delay_seconds: 2
+        random_delay_max_seconds: 3
+        case_sensitive: false
+      
+      # 规则 3: 通配符示例
+      - keywords:
+          - "订单*"        # 匹配 "订单123", "订单查询" 等
+          - "*价格*"       # 匹配包含"价格"的消息
+          - "产品?"        # 匹配 "产品A", "产品1" 等
+        reply_text: "收到你的查询，请稍等..."
+        fixed_delay_seconds: 1
+        random_delay_max_seconds: 2
+        case_sensitive: false
+  
+  # 账号 2: 测试账号
+  - name: test-account
+    monitor_chats:
+      - TestChat
+    rules:
+      - keywords:
+          - test
+          - 测试
+        reply_text: "这是测试回复"
+        fixed_delay_seconds: 1
+        random_delay_max_seconds: 1
+        case_sensitive: false
+
+# v1.1+ 功能：群组邀请（当前版本未实现）
+# group_invites:
+#   - url: https://t.me/joinchat/xxxxx
+#     welcome_message: "大家好，我是新来的！"
+
+# v1.2+ 功能：OCR 配置（当前版本未实现）
+# ocr:
+#   enabled: true
+#   engine: tesseract
