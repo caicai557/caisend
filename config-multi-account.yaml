@@ -1,0 +1,54 @@
+version: "1.0"
+description: "多账号测试配置 - 用于验证 Phase 5 多账号支持功能"
+
+# 账号列表 - Phase 5 新功能
+accounts:
+  - name: account-1
+    # browser_data_dir 将自动生成为 ./browser_data/account-1
+    monitor_chats:
+      - "Saved Messages"  # 使用 Telegram 的"我的收藏"进行自测
+    rules:
+      - keywords:
+          - "test1"
+          - "hello1"
+        reply_text: "这是账号1的自动回复！"
+        fixed_delay: 1
+        random_delay_max: 2
+        case_sensitive: false
+        enabled: true
+  
+  - name: account-2
+    # 显式指定数据目录（可选）
+    browser_data_dir: "./browser_data/custom-account-2"
+    monitor_chats:
+      - "Saved Messages"
+    rules:
+      - keywords:
+          - "test2"
+          - "hello2"
+        reply_text: "这是账号2的自动回复！"
+        fixed_delay: 1
+        random_delay_max: 2
+        case_sensitive: false
+        enabled: true
+
+# 默认账号（可选）
+default_account: "account-1"
+
+# 日志配置
+logging:
+  level: INFO
+  file: ./logs/teleflow-multi.log
+  max_file_size: 10MB
+  backup_count: 7
+
+# 浏览器配置
+browser:
+  headless: false  # 手动测试时显示浏览器
+  timeout: 30
+
+# 运行时配置
+runtime:
+  debug: false
+  check_interval: 3.0
+  max_retry_count: 3

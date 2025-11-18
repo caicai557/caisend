@@ -8,6 +8,15 @@ build/
 out/
 release/
 
+# TEMPORARY: Allow access to telegram-web-auto-reply source files for analysis
+!telegram-web-auto-reply/
+!telegram-web-auto-reply/src/
+!telegram-web-auto-reply/package.json
+!telegram-web-auto-reply/tsconfig.json
+!telegram-web-auto-reply/vite.config.ts
+!telegram-web-auto-reply/electron-builder.yml
+!telegram-web-auto-reply/.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -36,12 +45,12 @@ venv/
 ENV/
 env/
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files (TEMPORARY: Allow .env analysis)
+!.env
+!.env.local
+!.env.development.local
+!.env.test.local
+!.env.production.local
 
 # IDE files
 .vscode/
@@ -56,13 +65,13 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# Logs (TEMPORARY: Allow analysis)
+!logs/
+!*.log
+!npm-debug.log*
+!yarn-debug.log*
+!yarn-error.log*
+!pnpm-debug.log*
 
 # Runtime data
 pids
@@ -115,12 +124,26 @@ data/*.db
 # Project specific
 result.json
 
+# Teleflow specific
+browser_data/
+logs/
+config.yaml
+test_config.yaml
+*.log
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Large executable files
 *.exe
 *.msi
 *.dmg
 *.pkg
 
-# Electron build artifacts
-telegram-web-auto-reply/dist/
+# Electron build artifacts (TEMPORARY: Allow source analysis)
+!telegram-web-auto-reply/dist/
+!telegram-web-auto-reply/build/
+!telegram-web-auto-reply/dist-electron/
 traneasy/dist/
