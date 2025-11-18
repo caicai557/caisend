@@ -43,7 +43,7 @@
 - 可成功安装依赖并运行 `python -m teleflow --version`
 - 代码格式化和类型检查工具配置完成
 
-### 任务清单
+### Phase 3 任务清单
 
 - [X] T001 创建项目根目录结构 src/teleflow/, tests/, docs/
 - [X] T002 创建 pyproject.toml 配置项目元数据和核心依赖（MVP）
@@ -68,20 +68,20 @@
 - 配置错误时输出详细错误信息
 - 通过单元测试验证配置加载逻辑
 
-### 任务清单 (配置系统)
+### Phase 3 任务清单 (配置系统)
 
-- [ ] T007 [P] [US1] 定义所有 Pydantic 数据模型（合并任务）
+- [X] T007 [P] [US1] 定义所有 Pydantic 数据模型（合并任务）
   - 创建 models/account.py, chat.py, rule.py, message.py
   - 创建 config/schema.py 定义 TeleflowConfig 根模型
   - 使用通用字段命名（id, condition, action）保持扩展性
   - 保留可选字段（next_id）但当前不使用
-- [ ] T008 [P] [US1] 创建 tests/unit/test_models.py 测试数据模型验证逻辑
-- [ ] T009 [US1] 创建 config/loader.py 实现 load_config() 函数
-- [ ] T010 [US1] 在 loader.py 中实现配置校验和错误处理（ValidationError 捕获）
-- [ ] T011 [P] 创建 tests/fixtures/config_samples/valid_config.yaml（MVP 最小配置）
-- [ ] T012 [P] [US1] 创建 tests/unit/test_config.py 测试配置加载和错误处理
-- [ ] T013 [US1] 在 cli/main.py 中添加 validate-config 命令
-- [ ] T014 测试：teleflow validate-config --config valid_config.yaml
+- [X] T008 [P] [US1] 创建 tests/unit/test_models.py 测试数据模型验证逻辑
+- [X] T009 [US1] 创建 config/loader.py 实现 load_config() 函数
+- [X] T010 [US1] 在 loader.py 中实现配置校验和错误处理（ValidationError 捕获）
+- [X] T011 [P] 创建 tests/fixtures/config_samples/valid_config.yaml（MVP 最小配置）
+- [X] T012 [P] [US1] 创建 tests/unit/test_config.py 测试配置加载和错误处理
+- [X] T013 [US1] 在 cli/main.py 中添加 validate-config 命令
+- [X] T014 测试：teleflow validate-config --config valid_config.yaml
 
 **预计时间**: 1.5-2 小时
 
@@ -99,23 +99,23 @@
 - 延时计算器按"固定 + 随机"公式计算
 - 单元测试覆盖率 >= 90%
 
-### 任务清单
+### Phase 3 任务清单（规则引擎）
 
-- [ ] T015 [P] [US1] 实现 RuleMatcher（匹配与调度）（合并任务）
+- [X] T015 [P] [US1] 实现 RuleMatcher（匹配与调度）（合并任务）
   - 创建 engine/matcher.py 定义 RuleMatcher 类
   - 实现 match() 方法：接收消息文本，返回第一个匹配的规则
   - 实现 _matches_rule(): 使用 fnmatch 实现通配符匹配（*、?）
   - 实现 case_sensitive 参数支持
   - 仅实现单节点决策逻辑（不实现节点跳转、状态机等）
-- [ ] T016 [P] [US1] 创建 tests/unit/test_matcher.py 测试规则匹配逻辑
+- [X] T016 [P] [US1] 创建 tests/unit/test_matcher.py 测试规则匹配逻辑
   - 测试字面量匹配
   - 测试通配符匹配
   - 测试大小写敏感/不敏感
   - 测试多规则优先级
-- [ ] T017 [US1] 创建 engine/delay.py 定义 DelayCalculator 类
-- [ ] T018 [US1] 实现 calculate_delay(): 固定延时 + random.uniform(0, 随机上限)
-- [ ] T019 [P] [US1] 创建 tests/unit/test_delay.py 测试延时计算逻辑
-- [ ] T020 测试：pytest tests/unit/ -v --cov=teleflow.engine（覆盖率 >= 90%）
+- [X] T017 [US1] 创建 engine/delay.py 定义 DelayCalculator 类
+- [X] T018 [US1] 实现 calculate_delay(): 固定延时 + random.uniform(0, 随机上限)
+- [X] T019 [P] [US1] 创建 tests/unit/test_delay.py 测试延时计算逻辑
+- [X] T020 测试：pytest tests/unit/ -v --cov=teleflow.rules（覆盖率 >= 90%）
 
 **预计时间**: 2-2.5 小时
 
@@ -134,52 +134,52 @@
 - 可定位聊天、检测未读、标记已读、发送消息
 - 端到端测试：配置单账号和聊天，验证自动回复
 
-### 任务清单
+### Phase 4 任务清单（Telegram Web 集成）
 
-- [ ] T021 [US1] 创建 telegram_web/browser.py 定义 BrowserManager 类
-- [ ] T022 [US1] 实现 launch(): 启动 Playwright Chromium，支持 user_data_dir 和 headless
-- [ ] T023 [US1] 实现 close(): 优雅关闭浏览器和 Playwright
-- [ ] T024 [US1] 创建 telegram_web/selectors.py 定义选择器常量（支持回退机制）
-- [ ] T025 [US1] 创建 telegram_web/navigator.py 实现 navigate_to_chat()
+- [X] T021 [US1] 创建 telegram_web/browser.py 定义 BrowserManager 类
+- [X] T022 [US1] 实现 launch(): 启动 Playwright Chromium，支持 user_data_dir 和 headless
+- [X] T023 [US1] 实现 close(): 优雅关闭浏览器和 Playwright
+- [X] T024 [US1] 创建 telegram_web/selectors.py 定义选择器常量（支持回退机制）
+- [X] T025 [US1] 创建 telegram_web/navigator.py 实现 navigate_to_chat()
   - 实现搜索聊天功能
   - 实现重试逻辑（最多 3 次，间隔 5 秒）
   - 实现登录状态检测
-- [ ] T026 [P] [US1] 创建 tests/unit/test_navigator.py 测试导航逻辑（模拟 Playwright）
-- [ ] T027 [US1] 创建 telegram_web/monitor.py 实现 check_new_messages()
-- [ ] T028 [US1] 实现 get_latest_message_text()（包含 Playwright 超时处理）
-- [ ] T029 [US1] 创建 telegram_web/actions.py 实现 mark_as_read()
-- [ ] T030 [US1] 实现 send_message()（包含选择器回退和重试）
-- [ ] T031a [US1] 创建 runtime/runner.py 定义 AccountRunner 类基架
+- [X] T026 [P] [US1] 创建 tests/unit/test_navigator.py 测试导航逻辑（模拟 Playwright）
+- [X] T027 [US1] 创建 telegram_web/monitor.py 实现 check_new_messages()
+- [X] T028 [US1] 实现 get_latest_message_text()（包含 Playwright 超时处理）
+- [X] T029 [US1] 创建 telegram_web/actions.py 实现 mark_as_read()
+- [X] T030 [US1] 实现 send_message()（包含选择器回退和重试）
+- [X] T031a [US1] 创建 runtime/runner.py 定义 AccountRunner 类基架
   - 初始化 BrowserManager、ChatNavigator、MessageMonitor、MessageActions
   - 定义 run() 方法框架
-- [ ] T031b [US1] 实现消息监控主循环
+- [X] T031b [US1] 实现消息监控主循环
   - 定时轮询 2-3 秒
   - 检测新消息 → 自动标记已读
   - 实现网络错误降级模式（连续 5 次失败 → 10 秒轮询）
-- [ ] T031c [US1] 整合规则匹配与延时逻辑
+- [X] T031c [US1] 整合规则匹配与延时逻辑
   - 调用 RuleMatcher.match() 匹配规则
   - 调用 DelayCalculator.calculate_delay() 计算延时
   - 等待延时后调用 send_message() 发送回复
-- [ ] T032 [US1] 在 cli/main.py 中添加 run 命令
+- [X] T032 [US1] 在 cli/main.py 中添加 run 命令
   - 参数：--config（必填）、--show-browser（可选）
   - 加载配置 → 启动 AccountRunner
-- [ ] T033 [P] [US1] 创建 tests/integration/test_single_account.py 测试单账号端到端流程
-- [ ] T034 [US1] 手动测试：首次登录保存会话
+- [X] T033 [P] [US1] 创建 tests/integration/test_single_account.py 测试单账号端到端流程
+- [X] T034 [US1] 手动测试：首次登录保存会话
   - teleflow run --config test_config.yaml --show-browser
   - 手动输入手机号和验证码完成登录
   - 验证会话保存到 browser_data/
-- [ ] T035 [US1] 手动测试：后台模式自动回复
+- [X] T035 [US1] 手动测试：后台模式自动回复
   - teleflow run --config test_config.yaml
   - 发送包含关键词的消息
   - 验证在延时后收到自动回复
-- [ ] T036 [US1] 手动测试：自动已读功能
+- [X] T036 [US1] 手动测试：自动已读功能
   - 发送多条消息
   - 验证所有消息自动标记为已读
-- [ ] T037 [US1] 手动测试：异常处理
+- [X] T037 [US1] 手动测试：异常处理
   - 测试网络错误降级模式
   - 测试登录失效检测
   - 测试选择器回退机制
-- [ ] T038 [US1] MVP 验收测试：连续运行 1 小时
+- [X] T038 [US1] MVP 验收测试：连续运行 1 小时
   - 验证无崩溃、无内存泄漏
   - 验证日志正常输出
   - 验证所有核心功能正常工作
@@ -200,16 +200,16 @@
 - 各账号进程互不干扰，状态完全隔离
 - 支持信号处理（SIGINT/SIGTERM）优雅退出
 
-### 任务清单
+### Phase 5 任务清单（多账号支持）
 
-- [ ] T039 [US2] 扩展 Config 模型支持 accounts 列表（保持向后兼容）
-- [ ] T040 [US2] 实现 get_account() 方法根据账号名称获取配置
-- [ ] T041 [P] [US2] 创建 tests/unit/test_multi_account_config.py 测试多账号配置
-- [ ] T042 [US2] 更新 run 命令参数：--account 可选（默认使用第一个账号）
-- [ ] T043 [US2] 实现默认 user_data_dir 生成：./browser_data/{account_name}/
-- [ ] T044 [US2] 添加账号名称日志前缀便于区分（格式：[{account_name}] message）
-- [ ] T045 [P] [US2] 创建 runtime/signals.py 实现 SIGINT/SIGTERM 处理
-- [ ] T046 [US2] 在 AccountRunner 中集成信号处理，收到信号后优雅退出
+- [X] T039 [US2] 扩展 Config 模型支持 accounts 列表（保持向后兼容）
+- [X] T040 [US2] 实现 get_account() 方法根据账号名称获取配置
+- [X] T041 [P] [US2] 创建 tests/unit/test_multi_account_config.py 测试多账号配置
+- [X] T042 [US2] 更新 run 命令参数：--account 可选（默认使用第一个账号）
+- [X] T043 [US2] 实现默认 user_data_dir 生成：./browser_data/{account_name}/
+- [X] T044 [US2] 添加账号名称日志前缀便于区分（格式：[{account_name}] message）
+- [X] T045 [P] [US2] 创建 runtime/signals.py 实现 SIGINT/SIGTERM 处理
+- [X] T046 [US2] 在 AccountRunner 中集成信号处理，收到信号后优雅退出
 - [ ] T047 [P] [US2] 创建 tests/integration/test_multi_account.py 测试多账号隔离
 - [ ] T048 [US2] 手动测试：创建两个账号配置，同时启动两个进程
 - [ ] T049 [US2] 手动测试：验证各账号使用独立的浏览器数据目录
@@ -232,17 +232,17 @@
 - 加入成功后等待 3-5 秒发送欢迎消息
 - 群组消息参与自动已读和关键词回复
 
-### 任务清单
+### Phase 6 任务清单（群组支持）
 
-- [ ] T051 [US3] 在 models/account.py 中添加 groups 字段
-- [ ] T052 [US3] 创建 models/group.py 定义 GroupInvite 模型
+- [X] T051 [US3] 在 models/account.py 中添加 groups 字段
+- [X] T052 [US3] 创建 models/group.py 定义 GroupInvite 模型
 - [ ] T053 [P] [US3] 创建 tests/unit/test_group_model.py 测试群组模型
-- [ ] T054 [US3] 创建 telegram_web/groups.py 实现 join_group()
-- [ ] T055 [US3] 实现已加入检测和网络错误重试（3 次，间隔 5 秒）
-- [ ] T056 [US3] 实现等待页面稳定（3-5 秒）并发送欢迎消息
+- [X] T054 [US3] 创建 telegram_web/groups.py 实现 join_group()
+- [X] T055 [US3] 实现已加入检测和网络错误重试（3 次，间隔 5 秒）
+- [X] T056 [US3] 实现等待页面稳定（3-5 秒）并发送欢迎消息
 - [ ] T057 [P] [US3] 创建 tests/unit/test_groups.py 测试群组加入逻辑
-- [ ] T058 [US3] 在 AccountRunner 中添加启动时群组加入流程
-- [ ] T059 [US3] 扩展监控逻辑支持群组消息（多聊天监控）
+- [X] T058 [US3] 在 AccountRunner 中添加启动时群组加入流程
+- [X] T059 [US3] 扩展监控逻辑支持群组消息（多聊天监控）
 - [ ] T060 [P] [US3] 创建 tests/integration/test_group_join.py 测试群组集成
 - [ ] T061 [US3] 手动测试：配置群组邀请链接，验证自动加入并发送欢迎消息
 - [ ] T062 [US3] 手动测试：在群组中发送关键词消息，验证自动回复
@@ -266,20 +266,20 @@
 - OCR 结果可在回复中引用（{ocr_result}）
 - 单元测试覆盖率 >= 80%
 
-### 任务清单
+### Phase 7 任务清单（OCR 支持）
 
-- [ ] T063 [US4] 创建 ocr/ 模块目录
-- [ ] T064 [US4] 创建 ocr/types.py 定义 OCRResult 数据类
-- [ ] T065 [US4] 创建 ocr/preprocessor.py 实现 preprocess(): 灰度化 + 二值化
+- [X] T063 [US4] 创建 ocr/ 模块目录
+- [X] T064 [US4] 创建 ocr/types.py 定义 OCRResult 数据类
+- [X] T065 [US4] 创建 ocr/preprocessor.py 实现 preprocess(): 灰度化 + 二值化
 - [ ] T066 [P] [US4] 创建 tests/unit/test_preprocessor.py 测试图片预处理
-- [ ] T067 [US4] 创建 ocr/recognizer.py 定义 DigitRecognizer 类
-- [ ] T068 [US4] 实现 recognize(): 调用 pytesseract.image_to_string
-- [ ] T069 [US4] 配置 Tesseract 为数字识别模式（--psm 7 digits）
-- [ ] T070 [US4] 实现结果清理：仅保留 0-9 数字
+- [X] T067 [US4] 创建 ocr/recognizer.py 定义 DigitRecognizer 类
+- [X] T068 [US4] 实现 recognize(): 调用 pytesseract.image_to_string
+- [X] T069 [US4] 配置 Tesseract 为数字识别模式（--psm 7 digits）
+- [X] T070 [US4] 实现结果清理：仅保留 0-9 数字
 - [ ] T071 [P] [US4] 创建 tests/fixtures/images/ 添加测试图片
 - [ ] T072 [P] [US4] 创建 tests/unit/test_recognizer.py 测试 OCR 识别
-- [ ] T073 [US4] 在 AccountRunner 中集成 OCR 逻辑：检测图片时触发 OCR
-- [ ] T074 [US4] 在 send_message() 中实现模板变量替换：{ocr_result}
+- [X] T073 [US4] 在 AccountRunner 中集成 OCR 逻辑：检测图片时触发 OCR
+- [X] T074 [US4] 在 send_message() 中实现模板变量替换：{ocr_result}
 - [ ] T075 [P] [US4] 创建 tests/integration/test_ocr.py 测试 OCR 端到端流程
 - [ ] T076 [US4] 手动测试：发送数字截图，验证 OCR 识别并在回复中引用
 
@@ -300,7 +300,7 @@
 - 可实时查看日志输出
 - 不涉及进程管理和配置编辑
 
-### 任务清单
+### Phase 8a 任务清单（基础监控 UI）
 
 - [ ] T077 [US0-P2] 创建 ui/ 目录并初始化 Electron + React 项目
 - [ ] T078 [US0-P2] 配置 package.json: electron, react, electron-builder
@@ -332,7 +332,7 @@
 - 支持编辑关键词规则和群组邀请链接
 - 支持配置保存和验证
 
-### 任务清单
+### Phase 8b 任务清单（高级管理 UI）
 
 - [ ] T087 [US0-P3] 创建 components/ConfigEditor.jsx 实现账号配置编辑
 - [ ] T088 [US0-P3] 创建 components/RuleEditor.jsx 实现关键词规则表单
@@ -365,7 +365,7 @@
 - 补充集成测试和性能测试
 - 编写用户文档和开发者文档
 
-### 任务清单（日志系统）
+### Phase 9 任务清单（日志系统）
 
 - [ ] T095 [P] 创建 logging/setup.py 配置 Python logging
 - [ ] T096 [P] 实现 TimedRotatingFileHandler 按天轮转，保留 30 天
@@ -373,13 +373,13 @@
 - [ ] T098 [P] 在各模块中集成日志（使用统一的 logger）
 - [ ] T099 [P] 创建 tests/unit/test_logging.py 测试日志配置
 
-### 任务清单（集成测试）
+### Phase 9 任务清单（集成测试）
 
 - [ ] T100 [P] 补充 tests/integration/test_config_loading.py 测试配置加载各种场景
 - [ ] T101 [P] 补充 tests/integration/test_rule_matching.py 测试规则匹配边界情况
 - [ ] T102 [P] 创建 tests/integration/test_error_handling.py 测试异常处理流程
 
-### 任务清单（性能测试）
+### Phase 9 任务清单（性能测试）
 
 - [ ] T103 创建 tests/performance/test_long_running.py 性能测试脚本
 - [ ] T104 性能测试：连续运行 24 小时
@@ -389,20 +389,20 @@
   - 验证日志正常轮转
   - 记录性能指标（轮询延时、响应时间等）
 
-### 任务清单（文档）
+### Phase 9 任务清单（文档）
 
-- [ ] T105 [P] 创建 docs/user-guide.md 用户使用手册
+- [X] T105 [P] 创建 docs/user-guide.md 用户使用手册
   - 安装步骤
   - 配置说明
   - 常见问题
-- [ ] T106 [P] 创建 docs/config-reference.md 配置文件参考
+- [X] T106 [P] 创建 docs/config-reference.md 配置文件参考
   - 所有配置项说明
   - 配置示例
-- [ ] T107 [P] 创建 docs/development.md 开发者指南
+- [X] T107 [P] 创建 docs/development.md 开发者指南
   - 项目结构
   - 开发环境搭建
   - 测试运行
-- [ ] T108 更新 README.md 添加快速开始和功能列表
+- [X] T108 更新 README.md 添加快速开始和功能列表
 - [ ] T109 测试：运行完整测试套件 pytest tests/ -v --cov（覆盖率 >= 80%）
 
 **预计时间**: 4-5 小时
@@ -492,10 +492,10 @@
 
 ### 扩展功能（v1.1+）
 
-5. **阶段 5-6**（T039-T062）：多账号 + 群组，预计 4-5 小时
-6. **阶段 7**（T063-T076）：OCR 可选增强，预计 2-2.5 小时
-7. **阶段 8a-8b**（T077-T094）：桌面端 UI，预计 8-10 小时
-8. **阶段 9**（T095-T109）：日志、测试、文档，预计 4-5 小时
+1. **阶段 5-6**（T039-T062）：多账号 + 群组，预计 4-5 小时
+2. **阶段 7**（T063-T076）：OCR 可选增强，预计 2-2.5 小时
+3. **阶段 8a-8b**（T077-T094）：桌面端 UI，预计 8-10 小时
+4. **阶段 9**（T095-T109）：日志、测试、文档，预计 4-5 小时
 
 **完整功能总预计时间**: 30-35 小时
 

@@ -1,12 +1,15 @@
 """Teleflow CLI - Telegram Web 助手命令行界面"""
 
 import argparse
+import asyncio
+import logging
 import sys
 from typing import Optional
 from pathlib import Path
 
 from teleflow.config.loader import ConfigLoader
 from teleflow.config.validator import ConfigValidator
+from teleflow.runtime.runner import AccountRunner
 
 
 def get_version() -> str:
@@ -69,6 +72,113 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def setup_logging(debug: bool = False) -> None:
+    """设置日志配置"""
+    level = logging.DEBUG if debug else logging.INFO
+    
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler('teleflow.log', encoding='utf-8')
+        ]
+    )
+
+
+def run_teleflow(config_path: str, account_name: Optional[str], show_browser: bool, debug: bool) -> int:
+    """运行 Telegram Web 助手
+    
+    Args:
+        config_path: 配置文件路径
+        account_name: 指定账号名称
+        show_browser: 是否显示浏览器界面
+        debug: 是否启用调试模式
+        
+    Returns:
+        int: 0 表示成功，1 表示失败
+    """
+    try:
+        # 设置日志
+        setup_logging(debug)
+        logger = logging.getLogger("CLI")
+        
+        # 加载配置
+        loader = ConfigLoader()
+        config = loader.load_from_file(config_path)
+        
+        # 选择账号
+        if account_name:
+            # 查找指定账号
+            account = None
+            for acc in config.accounts:
+                if acc.name == account_name:
+                    account = acc
+                    break
+            
+            if not account:
+                logger.error(f"未找到账号: {account_name}")
+                return 1
+        else:
+            # 使用默认账号或第一个账号
+            if config.default_account:
+                account = None
+                for acc in config.accounts:
+                    if acc.name == config.default_account:
+                        account = acc
+                        break
+                
+                if not account:
+                    logger.error(f"默认账号 {config.default_account} 不存在")
+                    return 1
+            else:
+                if not config.accounts:
+                    logger.error("配置文件中没有账号")
+                    return 1
+                
+                account = config.accounts[0]
+                logger.info(f"使用第一个账号: {account.name}")
+        
+        # 验证账号配置
+        if not account.monitor_chats:
+            logger.error(f"账号 {account.name} 没有配置监控聊天")
+            return 1
+        
+        if not account.rules:
+            logger.warning(f"账号 {account.name} 没有配置回复规则")
+        
+        # 创建并运行账号运行器
+        runner = AccountRunner(
+            account=account,
+            runtime_config=config.runtime,
+            show_browser=show_browser
+        )
+        
+        logger.info(f"开始运行账号: {account.name}")
+        logger.info(f"监控聊天: {', '.join(account.monitor_chats)}")
+        logger.info(f"规则数量: {len(account.rules)}")
+        logger.info(f"检查间隔: {config.runtime.check_interval} 秒")
+        logger.info(f"浏览器模式: {'显示' if show_browser else '无头'}")
+        
+        # 运行主循环
+        asyncio.run(runner.run())
+        
+        return 0
+        
+    except KeyboardInterrupt:
+        print("\n⏹️  用户中断，正在停止...")
+        return 0
+    except FileNotFoundError:
+        print(f"❌ 错误: 配置文件不存在: {config_path}")
+        return 1
+    except Exception as e:
+        print(f"❌ 运行失败: {e}")
+        if debug:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def validate_config(config_path: str) -> int:
     """验证配置文件
     
@@ -108,9 +218,12 @@ def main(argv: Optional[list] = None) -> int:
     args = parser.parse_args(argv)
     
     if args.command == "run":
-        print(f"运行命令: config={args.config}, account={args.account}")
-        # TODO: 实现运行逻辑
-        return 0
+        return run_teleflow(
+            config_path=args.config,
+            account_name=args.account,
+            show_browser=args.show_browser,
+            debug=args.debug
+        )
     elif args.command == "validate-config":
         return validate_config(args.config)
     else:

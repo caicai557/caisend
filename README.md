@@ -1,21 +1,35 @@
 # Teleflow - Telegram Web 助手
 
-一个基于 Playwright 的 Telegram Web 自动化助手，支持单账号、单聊天的自动已读和关键词回复功能。
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Test Coverage](https://img.shields.io/badge/coverage-28%25-orange.svg)](htmlcov/index.html)
+
+一个基于 Playwright 的 Telegram Web 自动化助手，支持关键词自动回复、自动已读、延时控制等功能。
+
+## ✨ 特性
+
+- 🤖 **智能回复**：支持关键词匹配（字面量 + 通配符）
+- ⏱️ **延时控制**：固定延时 + 随机延时，模拟真人响应
+- 📖 **自动已读**：检测新消息后自动标记为已读
+- 🔧 **配置驱动**：所有行为通过 YAML 配置文件定义
+- 🚀 **多账号支持**：一账号一进程，完全隔离（v1.1+）
+- 👥 **群组支持**：自动加入群组并回复（v1.1+）
+- 📸 **OCR 识别**：识别图片中的数字（v1.2+）
 
 ## 🚀 快速开始
 
 ### 环境要求
 
 - Python 3.11+
-- Windows 操作系统
-- 现代浏览器（Chromium/Chrome）
+- Windows / macOS / Linux
+- Chromium 浏览器（自动安装）
 
 ### 安装
 
 ```bash
 # 克隆项目
 git clone <repository-url>
-cd teleflow
+cd xiaohao
 
 # 安装依赖
 pip install -e .
@@ -24,34 +38,48 @@ pip install -e .
 playwright install chromium
 ```
 
-### 基本使用
+### 首次运行
+
+1. 创建配置文件 `config.yaml`（参考下方示例）
+2. 首次登录（显示浏览器）：
 
 ```bash
-# 查看版本
-python -m teleflow.cli --version
-
-# 运行（需要先配置 config.yaml）
-python -m teleflow.cli run --config config.yaml
+teleflow run --config config.yaml --show-browser
 ```
 
-## 📋 功能特性
+3. 在浏览器中完成 Telegram 登录
+4. 后续运行（后台模式）：
 
-### MVP 功能 (v1.0)
+```bash
+teleflow run --config config.yaml
+```
 
-- ✅ **单账号管理**：支持配置一个 Telegram 账号
-- ✅ **单聊天监控**：监控指定私聊对象的新消息
-- ✅ **自动已读**：检测到新消息后自动标记为已读
-- ✅ **关键词回复**：基于字面量和通配符匹配，自动回复预设文本
-- ✅ **延时控制**：支持固定延时 + 随机延时，模拟真人响应
-- ✅ **YAML 配置**：所有行为通过配置文件定义
-- ✅ **命令行界面**：提供简洁的 CLI 操作
+## 📋 功能列表
 
-### 扩展功能 (v1.1+)
+### ✅ MVP 功能 (v1.0)
 
-- 🔄 多账号并行运行
-- 🔄 群组消息监控和回复
-- 🔄 OCR 图片识别
-- 🔄 桌面端管理界面
+- **配置系统**：YAML 配置加载与验证
+- **数据模型**：Pydantic 数据验证
+- **规则引擎**：关键词匹配（字面量 + 通配符 `*`/`?`）
+- **延时计算**：固定延时 + 随机延时
+- **浏览器管理**：Playwright Chromium 集成
+- **消息监控**：定时轮询检测新消息
+- **消息操作**：自动已读、发送回复
+- **CLI 命令**：`run`, `validate-config`, `--version`
+
+### 🔄 扩展功能 (v1.1+)
+
+- **多账号支持**：一账号一进程模式
+- **群组支持**：自动加入群组、发送欢迎消息
+- **OCR 识别**：Tesseract 数字识别
+- **信号处理**：SIGINT/SIGTERM 优雅退出
+
+### 🚧 计划功能 (v1.2+)
+
+- 桌面端管理界面（Electron + React）
+- 正则表达式匹配
+- 状态机流程控制
+- 性能优化与监控
 
 ## ⚙️ 配置文件
 

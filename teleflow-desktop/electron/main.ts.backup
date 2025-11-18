@@ -1,0 +1,257 @@
+import { app, BrowserWindow, ipcMain } from 'electron'
+import { spawn, ChildProcess } from 'child_process'
+import * as path from 'path'
+import * as fs from 'fs'
+import * as yaml from 'yaml'
+
+// Electron 主进程 - 管理 Teleflow 子进程
+
+interface AccountProcess {
+  process: ChildProcess
+  status: 'starting' | 'running' | 'stopping' | 'stopped'
+  startTime?: Date
+}
+
+class ProcessManager {
+  private processes: Map<string, AccountProcess> = new Map()
+  private mainWindow: BrowserWindow | null = null
+  private pythonPath: string = 'python'  // 可配置
+
+  constructor() {
+    // 检测 Python 路径
+    this.detectPythonPath()
+  }
+
+  private async detectPythonPath() {
+    // 尝试检测可用的 Python 命令
+    const candidates = ['python', 'python3', 'py']
+    
+    for (const cmd of candidates) {
+      try {
+        const proc = spawn(cmd, ['--version'])
+        await new Promise((resolve, reject) => {
+          proc.on('exit', (code) => code === 0 ? resolve(true) : reject())
+          proc.on('error', reject)
+          setTimeout(reject, 2000)
+        })
+        this.pythonPath = cmd
+        console.log(`检测到 Python: ${cmd}`)
+        break
+      } catch {
+        continue
+      }
+    }
+  }
+
+  setMainWindow(window: BrowserWindow) {
+    this.mainWindow = window
+  }
+
+  async startAccount(accountName: string, configPath: string) {
+    console.log(`启动账号: ${accountName}，配置: ${configPath}`)
+    
+    // 检查是否已在运行
+    if (this.processes.has(accountName)) {
+      const existing = this.processes.get(accountName)!
+      if (existing.status === 'running' || existing.status === 'starting') {
+        return { success: false, error: '账号已在运行中' }
+      }
+    }
+
+    try {
+      // 构建 Python 命令
+      const projectRoot = path.join(__dirname, '../../..')
+      const proc = spawn(this.pythonPath, [
+        '-m', 'teleflow.cli',
+        'run',
+        '--account', accountName,
+        '--config', configPath
+      ], {
+        cwd: projectRoot,
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: '1'  // 禁用 Python 输出缓冲
+        }
+      })
+
+      proc.stdout?.on('data', (data) => {
+        const message = data.toString()
+        console.log(`[${accountName}] ${message}`)
+        
+        // 发送日志到渲染进程
+        this.mainWindow?.webContents.send('log-update', {
+          account: accountName,
+          message: message,
+          timestamp: new Date().toISOString()
+        })
+      })
+
+      proc.stderr?.on('data', (data) => {
+        const error = data.toString()
+        console.error(`[${accountName}] ERROR: ${error}`)
+        
+        this.mainWindow?.webContents.send('log-update', {
+          account: accountName,
+          message: error,
+          timestamp: new Date().toISOString(),
+          level: 'error'
+        })
+      })
+
+      proc.on('exit', (code) => {
+        console.log(`[${accountName}] 进程退出，代码: ${code}`)
+        this.processes.delete(accountName)
+        
+        this.mainWindow?.webContents.send('account-status-changed', {
+          account: accountName,
+          status: 'stopped',
+          exitCode: code
+        })
+      })
+
+      this.processes.set(accountName, proc)
+      return { success: true, pid: proc.pid }
+    } catch (error) {
+      console.error(`启动账号失败: ${error}`)
+      return { success: false, error: String(error) }
+    }
+  }
+
+  async stopAccount(accountName: string) {
+    const proc = this.processes.get(accountName)
+    if (proc) {
+      proc.kill('SIGTERM')
+      this.processes.delete(accountName)
+      return { success: true }
+    }
+    return { success: false, error: '进程不存在' }
+  }
+
+  getAccountStatus(accountName: string) {
+    const proc = this.processes.get(accountName)
+    return {
+      running: !!proc,
+      pid: proc?.pid
+    }
+  }
+
+  stopAll() {
+    this.processes.forEach((proc, name) => {
+      console.log(`停止账号: ${name}`)
+      proc.kill('SIGTERM')
+    })
+    this.processes.clear()
+  }
+}
+
+const processManager = new ProcessManager()
+
+let mainWindow: BrowserWindow | null = null
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    },
+    title: 'Teleflow Desktop'
+  })
+
+  processManager.setMainWindow(mainWindow)
+
+  // 开发模式加载 Vite 服务器
+  if (process.env.VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
+    mainWindow.webContents.openDevTools()
+  } else {
+    // 生产模式加载打包后的文件
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+}
+
+// IPC 处理器
+ipcMain.handle('get-config', async (event, configPath = 'config.yaml') => {
+  try {
+    const fullPath = path.resolve(configPath)
+    const content = fs.readFileSync(fullPath, 'utf8')
+    const config = yaml.parse(content)
+    return { success: true, config }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+})
+
+ipcMain.handle('save-config', async (event, config, configPath = 'config.yaml') => {
+  try {
+    const fullPath = path.resolve(configPath)
+    const content = yaml.stringify(config)
+    fs.writeFileSync(fullPath, content, 'utf8')
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+})
+
+ipcMain.handle('start-account', async (event, accountName, configPath = 'config.yaml') => {
+  return await processManager.startAccount(accountName, configPath)
+})
+
+ipcMain.handle('stop-account', async (event, accountName) => {
+  return await processManager.stopAccount(accountName)
+})
+
+ipcMain.handle('get-account-status', async (event, accountName) => {
+  return processManager.getAccountStatus(accountName)
+})
+
+ipcMain.handle('validate-config', async (event, configPath = 'config.yaml') => {
+  try {
+    const result = spawn('python', [
+      '-m', 'teleflow', 'validate-config',
+      '--config', configPath
+    ])
+
+    return new Promise((resolve) => {
+      let output = ''
+      result.stdout?.on('data', (data) => {
+        output += data.toString()
+      })
+
+      result.on('exit', (code) => {
+        resolve({
+          success: code === 0,
+          output
+        })
+      })
+    })
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+})
+
+// 应用生命周期
+app.whenReady().then(createWindow)
+
+app.on('window-all-closed', () => {
+  processManager.stopAll()
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow()
+  }
+})
+
+app.on('before-quit', () => {
+  processManager.stopAll()
+})
