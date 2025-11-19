@@ -27,20 +27,54 @@
 ## 1️⃣ 宪法与核心原则 [Constitution Alignment]
 
 ### CHK001: MVP 范围定义
-- [ ] Constitution.md 中是否明确定义了 MVP（v1.0）的功能边界？ [Completeness]
-- [ ] MVP 是否明确排除了哪些功能（多账号、群组、OCR、桌面 UI、多节点流程）？ [Clarity]
-- [ ] Spec.md 中的功能需求是否与 constitution 的 MVP 定义一致？ [Consistency]
-- [ ] Tasks.md 中的 MVP 任务数量（38 个任务）是否与 constitution 中的定义对应？ [Consistency]
+
+- [x] Constitution.md 中是否明确定义了 MVP（v1.0）的功能边界？（@.specify/memory/constitution.md#101-108） [Completeness]
+- [x] MVP 是否明确排除了哪些功能（多账号、群组、OCR、桌面 UI、多节点流程）？（@.specify/memory/constitution.md#109-116） [Clarity]
+- [x] Spec.md 中的功能需求是否与 constitution 的 MVP 定义一致？（@specs/001-telegram-web-assistant/spec.md#13-44） [Consistency]
+- [x] Tasks.md 中的 MVP 任务数量（38 个任务）是否与 constitution 中的定义对应？（@specs/001-telegram-web-assistant/tasks.md#20-58） [Consistency]
 
 ### CHK002: 版本路线图清晰度
-- [ ] Constitution.md 是否明确定义了 v1.1、v1.2、v1.3+、v2.0 的功能划分？ [Completeness]
-- [ ] Spec.md 中的扩展功能（FR-042至FR-055）是否明确标记了版本归属（v1.2+）？ [Clarity]
-- [ ] Tasks.md 中的扩展任务是否明确标记了版本（v1.1、v1.2、v1.3+）？ [Consistency]
+
+- [x] Constitution.md 是否明确定义了 v1.1、v1.2、v1.3+、v2.0 的功能划分？（@.specify/memory/constitution.md#117-144） [Completeness]
+- [x] Spec.md 中的扩展功能是否明确标记了版本归属（v1.1+/v1.2+/v2.0）？（@specs/001-telegram-web-assistant/spec.md#25-33） [Clarity]
+- [x] Tasks.md 中的扩展任务是否明确标记了版本（阶段 5-9 对应 v1.1+ 说明）？（@specs/001-telegram-web-assistant/tasks.md#193-409） [Consistency]
 
 ### CHK003: 配置驱动原则
-- [ ] Constitution.md 是否明确要求所有业务行为通过 YAML 配置驱动？ [Completeness]
-- [ ] Spec.md 是否明确禁止在代码中硬编码业务规则？ [Clarity]
-- [ ] Plan.md 是否说明了配置文件的结构和扩展性设计？ [Coverage]
+
+- [x] Constitution.md 是否明确要求所有业务行为通过 YAML 配置驱动？（@.specify/memory/constitution.md#147-175） [Completeness]
+- [x] Spec.md 是否明确禁止在代码中硬编码业务规则？（@specs/001-telegram-web-assistant/spec.md#334-360） [Clarity]
+- [x] Plan.md 是否说明了配置文件的结构和扩展性设计？（@specs/001-telegram-web-assistant/plan.md#181-210） [Coverage]
+
+### CHK004: 单账号配置需求
+
+- [x] Spec.md 是否明确定义了单账号配置的必需字段（账号名称、浏览器数据目录、监控聊天、规则配置）？（@specs/001-telegram-web-assistant/spec.md#147-175） [Completeness]
+- [x] Spec.md 是否明确定义了浏览器数据目录的默认路径规则（`./browser_data/{account_name}/`）？（@specs/001-telegram-web-assistant/spec.md#147-175） [Clarity]
+- [x] Spec.md 是否说明了配置文件路径的优先级（命令行参数 > 默认路径）？（@specs/001-telegram-web-assistant/spec.md#384-395） [Clarity]
+
+### CHK005: 多账号隔离策略（v1.1 扩展）
+
+- [x] Spec.md 是否明确定义了多账号的隔离机制（一账号一进程模式）？（@specs/001-telegram-web-assistant/spec.md#377-383） [Completeness]
+- [x] Plan.md 是否说明了不同账号的浏览器会话和数据目录如何隔离？（@specs/001-telegram-web-assistant/plan.md#101-158） [Clarity]
+- [x] Spec.md 是否明确要求不同账号的配置和运行状态互不干扰（FR-028）？（@specs/001-telegram-web-assistant/spec.md#377-383） [Clarity]
+
+### CHK006: YAML 配置格式
+
+- [x] Spec.md 是否明确要求使用 YAML 格式（依赖 pyyaml 库）？（@specs/001-telegram-web-assistant/spec.md#334-360） [Completeness]
+- [x] Constitution.md 中的配置示例是否与 spec.md 定义的字段一致？（@.specify/memory/constitution.md#156-175） [Consistency]
+- [x] Plan.md 是否说明了配置文件的 Pydantic 数据模型设计？（@specs/001-telegram-web-assistant/plan.md#181-210） [Coverage]
+
+### CHK007: 配置校验需求
+
+- [x] Spec.md 是否明确要求启动时校验配置文件格式（FR-032）？（@specs/001-telegram-web-assistant/spec.md#384-399） [Completeness]
+- [x] Spec.md 是否明确定义了配置错误时的行为（拒绝启动并输出详细错误信息）？（@specs/001-telegram-web-assistant/spec.md#384-399） [Clarity]
+- [x] Tasks.md 是否包含配置校验的测试任务（T012: test_config.py）？（@specs/001-telegram-web-assistant/tasks.md#71-88） [Coverage]
+
+### CHK008: 命令行接口需求
+
+- [x] Spec.md 是否明确列出了所有支持的 CLI 命令（run、validate-config、--version）？（@specs/001-telegram-web-assistant/spec.md#384-399） [Completeness]
+- [x] Spec.md 是否明确定义了每个 CLI 参数的作用（--debug、--show-browser、--config、--random-seed）？（@specs/001-telegram-web-assistant/spec.md#384-399） [Clarity]
+- [x] Spec.md 是否说明了命令行参数与配置文件的优先级规则（FR-031）？（@specs/001-telegram-web-assistant/spec.md#384-399） [Clarity]
+- [x] Tasks.md 是否包含 CLI 命令的实现任务（T005: --version, T013: validate-config, T032: run）？（@specs/001-telegram-web-assistant/tasks.md#36-189） [Coverage]
 
 ---
 
