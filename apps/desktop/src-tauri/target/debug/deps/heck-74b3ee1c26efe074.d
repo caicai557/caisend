@@ -1,0 +1,13 @@
+C:\Users\hybnb\Desktop\xiaohao\apps\desktop\src-tauri\target\debug\deps\heck-74b3ee1c26efe074.d: C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\lib.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\kebab.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\lower_camel.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\shouty_kebab.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\shouty_snake.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\snake.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\title.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\train.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\upper_camel.rs
+
+C:\Users\hybnb\Desktop\xiaohao\apps\desktop\src-tauri\target\debug\deps\libheck-74b3ee1c26efe074.rmeta: C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\lib.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\kebab.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\lower_camel.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\shouty_kebab.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\shouty_snake.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\snake.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\title.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\train.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\upper_camel.rs
+
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\lib.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\kebab.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\lower_camel.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\shouty_kebab.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\shouty_snake.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\snake.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\title.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\train.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\heck-0.4.1\src\upper_camel.rs:

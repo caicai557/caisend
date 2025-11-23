@@ -1,0 +1,11 @@
+C:\Users\hybnb\Desktop\xiaohao\apps\desktop\src-tauri\target\debug\deps\winreg-e71596e53033ebfa.d: C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\lib.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\common.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\enums.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_key.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_key_metadata.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_value.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\types.rs
+
+C:\Users\hybnb\Desktop\xiaohao\apps\desktop\src-tauri\target\debug\deps\libwinreg-e71596e53033ebfa.rmeta: C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\lib.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\common.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\enums.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_key.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_key_metadata.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_value.rs C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\types.rs
+
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\lib.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\common.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\enums.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_key.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_key_metadata.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\reg_value.rs:
+C:\Users\hybnb\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winreg-0.51.0\src\types.rs:

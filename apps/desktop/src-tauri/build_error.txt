@@ -1,0 +1,85 @@
+   Compiling teleflow-desktop v0.1.0 (C:\Users\hybnb\Desktop\xiaohao\apps\desktop\src-tauri)
+warning: unused import: `std::path::PathBuf`
+ --> src\adapters\db.rs:4:5
+  |
+4 | use std::path::PathBuf;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `std::path::PathBuf`
+ --> src\adapters\cdp.rs:3:5
+  |
+3 | use std::path::PathBuf;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+ --> src\adapters\connection_manager.rs:3:5
+  |
+3 | use tokio::sync::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\adapters\connection_manager.rs:5:5
+  |
+5 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `AppHandle`
+ --> src\commands\account.rs:1:20
+  |
+1 | use tauri::{State, AppHandle};
+  |                    ^^^^^^^^^
+
+warning: unused import: `AppHandle`
+ --> src\commands\message.rs:1:20
+  |
+1 | use tauri::{State, AppHandle};
+  |                    ^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\events.rs:3:5
+  |
+3 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused variable: `handle`
+  --> src\adapters\cdp.rs:31:13
+   |
+31 |         let handle = app_handle.clone();
+   |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `page`
+  --> src\commands\message.rs:24:17
+   |
+24 |     if let Some(page) = pages.first() {
+   |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_page`
+
+error[E0382]: borrow of moved value: `state`
+  --> src\lib.rs:29:21
+   |
+20 |                 let state = AppState::new(db_pool.clone()).await;
+   |                     ----- move occurs because `state` has type `AppState`, which does not implement the `Copy` trait
+21 |                 let event_bus = state.event_bus.clone();
+22 |                 handle_clone.manage(state);
+   |                                     ----- value moved here
+...
+29 |                     state.rule_engine.clone()
+   |                     ^^^^^^^^^^^^^^^^^ value borrowed here after move
+   |
+note: if `AppState` implemented `Clone`, you could clone the value
+  --> src\state.rs:9:1
+   |
+9  | pub struct AppState {
+   | ^^^^^^^^^^^^^^^^^^^ consider implementing `Clone` for this type
+   |
+  ::: src\lib.rs:22:37
+   |
+22 |                 handle_clone.manage(state);
+   |                                     ----- you could clone this value
+
+For more information about this error, try `rustc --explain E0382`.
+warning: `teleflow-desktop` (lib) generated 9 warnings
+error: could not compile `teleflow-desktop` (lib) due to 1 previous error; 9 warnings emitted

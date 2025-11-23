@@ -1,0 +1,6 @@
+{
+  "language": "python",
+  "source_dir": "apps",
+  "test_command": "python -m pytest",
+  "ai_agent_cli": "claude"
+}
