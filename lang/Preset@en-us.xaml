@@ -1,0 +1,128 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib"
+                    >
+
+    <s:String x:Key="language_name">English</s:String>
+    <!--Menu-->
+    <s:String x:Key="string.class.create">New Category</s:String>
+    <s:String x:Key="string.class.edit">Rename</s:String>
+    <s:String x:Key="string.class.del">Delete</s:String>
+    <s:String x:Key="string.class.move_up">Move Up</s:String>
+    <s:String x:Key="string.class.move_down">Move Down</s:String>
+    <s:String x:Key="string.class.export">Export</s:String>
+    <s:String x:Key="string.class.export.excel">Excel (Plain Text)</s:String>
+    <s:String x:Key="string.class.export.pof">POF (Original Format)</s:String>
+
+    <!--Menu-->
+    <s:String x:Key="string.list.copy">copy</s:String>
+    <s:String x:Key="string.list.copy.value">Copy Value</s:String>
+    <s:String x:Key="string.list.copy.image">Copy Image All</s:String>
+    <s:String x:Key="string.list.export.insert">insert</s:String>
+
+    <s:String x:Key="string.list.create">New Phrase</s:String>
+    <s:String x:Key="string.list.edit">Edit</s:String>
+    <s:String x:Key="string.list.del">Delete</s:String>
+    <s:String x:Key="string.list.sort">Sort</s:String>
+    <s:String x:Key="string.list.share">Share</s:String>
+    <s:String x:Key="string.list.moveTo">MoveTo</s:String>
+    <s:String x:Key="string.list.copyTo">CopyTo</s:String>
+    <s:String x:Key="string.list.setColor">SetColor</s:String>
+    <s:String x:Key="string.list.export">Export selected</s:String>
+    <s:String x:Key="string.list.export.excel">Excel (Plain Text)</s:String>
+    <s:String x:Key="string.list.export.pof">POF (Original Format)</s:String>
+
+
+    <!--Menu Label -->
+    <s:String x:Key="string.label.create">create label</s:String>
+    <s:String x:Key="string.label.edit">edit</s:String>
+    <s:String x:Key="string.label.move_up">move Top</s:String>
+    <s:String x:Key="string.label.move_down">move Down</s:String>
+    <s:String x:Key="string.laebl.del">del</s:String>
+
+
+
+    <!--MessageBox-->
+    <s:String x:Key="string.messagebox.ok">oK</s:String>
+    <s:String x:Key="string.messagebox.calcel">calcel</s:String>
+    <!--createClassBox-->
+    <s:String x:Key="string.createClassBox.title">create category</s:String>
+    <s:String x:Key="string.createClassBox.save">save</s:String>
+    <s:String x:Key="string.createClassBox.calcel">calcel</s:String>
+    <!--editClassBox-->
+    <s:String x:Key="string.editClassBox.title">edit category</s:String>
+    <s:String x:Key="string.editClassBox.save">save</s:String>
+    <s:String x:Key="string.editClassBox.calcel">calcel</s:String>
+    <!--createLabelBox-->
+    <s:String x:Key="string.createLabelBox.title">create Label</s:String>
+    <s:String x:Key="string.createLabelBox.save">save</s:String>
+    <s:String x:Key="string.createLabelBox.calcel">calcel</s:String>
+    <!--EditLabelBox-->
+    <s:String x:Key="string.editLabelBox.title">edit Label</s:String>
+    <s:String x:Key="string.editLabelBox.save">save</s:String>
+    <s:String x:Key="string.editLabelBox.calcel">calcel</s:String>
+    <!--createListBox-->
+    <s:String x:Key="string.createListBox.title">create phrase</s:String>
+    <s:String x:Key="string.createListBox.save">save</s:String>
+    <s:String x:Key="string.createListBox.calcel">calcel</s:String>
+    <!--editListBox-->
+    <s:String x:Key="string.editListBox.title">create phrase</s:String>
+    <s:String x:Key="string.editListBox.save">save</s:String>
+    <s:String x:Key="string.editListBox.calcel">calcel</s:String>
+
+    <!--Delete Is Ok-->
+    <s:String x:Key="string.value.delete_select_Is_ok_class">Are you sure you want to delete the selected data?</s:String>
+    <s:String x:Key="string.value.delete_select_Is_ok_list">Are you sure you want to delete the selected data?</s:String>
+
+    <s:String x:Key="Please add a category first">Please add a category first</s:String>
+    <s:String x:Key="getSignErr">Failed to get unique flag Please check network</s:String>
+    <s:String x:Key="string.str.copyEmailSuccess">Email Copy Success !</s:String>
+
+    <s:String x:Key="string.updateBox.updateNow">UpdateNow</s:String>
+    <s:String x:Key="string.updateBox.updateNext">Next Reminder</s:String>
+    <s:String x:Key="string.updateBox.updateSkip">Skip This Version</s:String>
+
+
+
+
+    <s:String x:Key="installDatabaseErr">Unable to create initial database, please check the network</s:String>
+
+
+    <!--Setting Window-->
+    <s:String x:Key="string.setting.window.title">Setting Window</s:String>
+    <s:String x:Key="string.setting.nav.title">Base</s:String>
+    <s:String x:Key="string.setting.nav.snap">Snap Window</s:String>
+    <s:String x:Key="string.setting.nav.backup">Backup</s:String>
+    <s:String x:Key="string.setting.nav.hotkeys">Hotkeys</s:String>
+    <s:String x:Key="string.setting.nav.info">Info</s:String>
+    <s:String x:Key="string.setting.nav.Extends">Extends</s:String>
+
+    <s:String x:Key="string.setting.backup.Import_excel">Import Excel</s:String>
+    <s:String x:Key="string.setting.backup.export_excel">Export Excel</s:String>
+
+    <s:String x:Key="string.setting.backup.Import_pof">Import POF or  EBF</s:String>
+    <s:String x:Key="string.setting.backup.export_pof">Export POF</s:String>
+
+    <s:String x:Key="string.setting.follow.SwitchAdsorption">Adsorption to chat window (ListData)</s:String>
+    <s:String x:Key="string.setting.follow.Adsorption in left">Adsorption in left</s:String>
+    <s:String x:Key="string.setting.follow.Adsorption in right">Adsorption in right</s:String>
+    <s:String x:Key="string.setting.follow.search_bar">Search bar adsorption</s:String>
+
+    <s:String x:Key="string.setting.hotkey.f_Title">F1-F10 hotkey settings</s:String>
+    <s:String x:Key="string.setting.hotkey.f_isEnabled">Enable F1-F10 hotkeys（Corresponding list 01-10 serial number）</s:String>
+    <s:String x:Key="string.setting.hotkey.f_up_send">Hit the hot key to send directly （By default only input）</s:String>
+    <s:String x:Key="string.setting.hotkey.f_global">Effective at all times （The default is only valid when following）</s:String>
+    <s:String x:Key="string.setting.hotkey.f_send_preview">Preview before sending</s:String>
+
+    <s:String x:Key="string.setting.base.Auto start at boot">Auto start at boot</s:String>
+    <s:String x:Key="string.setting.base.Hide homepage on startup">Hide homepage on startup</s:String>
+    <s:String x:Key="string.setting.base.language">language:</s:String>
+    <s:String x:Key="string.setting.base.other_title">Other</s:String>
+    <s:String x:Key="string.setting.base.clipboard_restore">Clipboard restore</s:String>
+    <s:String x:Key="string.setting.base.DoubleClickSend">Double click list send</s:String>
+    <s:String x:Key="string.setting.base.showListIndex">List Index Show</s:String>
+    <s:String x:Key="string.setting.base.startShowHome">Show Home On Startup</s:String>
+
+    <s:String x:Key="string.searchWindow.inputTitle">&#xe609;Enter the content to be searched / Use the TAB button to switch the search Multiple keywords can be separated by spaces</s:String>
+
+</ResourceDictionary>

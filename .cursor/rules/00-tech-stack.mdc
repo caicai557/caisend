@@ -1,0 +1,45 @@
+# Rule 00: Non-Negotiable Technology Stack (Q4 2025 SOTA)
+
+This document defines the mandatory technology stack for Project Teleflow 2025. AI agents MUST adhere to these constraints.
+
+## 1. Architecture
+- **Monorepo Manager:** `Turborepo` with `pnpm`.
+- **Application Shell:** `Tauri v2`. Do NOT use Electron.
+- **Core Logic (Backend):** `Rust`, embedded within `apps/desktop/src-tauri`.
+    - **CRITICAL:** Do NOT use Python (FastAPI) or Node.js (NestJS/Hono) for core logic. The Rust core IS the backend. We prioritize performance and minimal footprint (<60MB memory budget).
+- **Concurrency Runtime:** `Tokio` (Rust).
+- **Communication:** Use Tauri Commands (IPC) exclusively. Do NOT spin up local HTTP servers.
+
+## 2. Frontend Stack (`apps/desktop/src`)
+- **Language:** TypeScript 5.5+ (Strict mode enforced globally).
+- **Framework:** `React 19`.
+- **Meta-Framework/Router:** `TanStack Start` (Vite + TanStack Router).
+    - *Forbidden:* Next.js, Remix (We prioritize explicit flow over implicit SSR magic).
+- **State Management:**
+  - Global/Client State: `Zustand`.
+  - Async/Server State: `TanStack Query v6`.
+- **Styling:** `Tailwind CSS` + `shadcn/ui`.
+
+## 3. Rust Stack (`apps/desktop/src-tauri`)
+- **Architecture:** Clean Architecture / Hexagonal. Organize code into `domain` (core logic) and `adapters` (infrastructure).
+- **Database:** SQLite.
+- **Database Access:** `SQLx`. Ensure queries use `query!` or `query_as!` macros for compile-time verification.
+- **Serialization:** `Serde`.
+- **Error Handling:** `thiserror` (for defining error types) and `anyhow` (for context).
+- **Automation:** Native CDP implementation (e.g., `chromiumoxide`).
+    - **CRITICAL FORBIDDEN:** Playwright, Selenium.
+
+## 4. TypeScript Configuration (`tsconfig.json`)
+The following settings are mandatory and enforced globally:
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    // SOTA 2025 Strictness
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```

@@ -1,0 +1,105 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib"
+                    >
+    
+    <s:String x:Key="language_name">中文(繁体)</s:String>
+
+    <!--Menu-->
+    <s:String x:Key="string.class.create">新建類別</s:String>
+    <s:String x:Key="string.class.edit">重命名</s:String>
+    <s:String x:Key="string.class.del">刪除</s:String>
+    <s:String x:Key="string.class.move_up">向上移動</s:String>
+    <s:String x:Key="string.class.move_down">向下移動</s:String>
+    <s:String x:Key="string.class.export">生成備份文件</s:String>
+    <s:String x:Key="string.class.export.excel">Excel (文字)</s:String>
+    <s:String x:Key="string.class.export.pof">POF (原格式 圖/文)</s:String>
+    <!--Menu-->
+    <s:String x:Key="string.list.copy">複製</s:String>
+    <s:String x:Key="string.list.copy.value">複製內容</s:String>
+    <s:String x:Key="string.list.copy.image">複製所有圖片</s:String>
+    <s:String x:Key="string.list.export.insert">插入短語</s:String>
+    
+    <s:String x:Key="string.list.create">新建短語</s:String>
+    <s:String x:Key="string.list.edit">編輯短語</s:String>
+    <s:String x:Key="string.list.del">刪除短語</s:String>
+    <s:String x:Key="string.list.sort">快速排序</s:String>
+    <s:String x:Key="string.list.share">分享</s:String>
+    <s:String x:Key="string.list.moveTo">移動到</s:String>
+    <s:String x:Key="string.list.copyTo">複製到</s:String>
+    <s:String x:Key="string.list.setColor">設定色彩</s:String>
+    <s:String x:Key="string.list.export">輸出選定的資料</s:String>
+    <s:String x:Key="string.list.export.excel">Excel (文字)</s:String>
+    <s:String x:Key="string.list.export.pof">POF (原格式 圖/文)</s:String>
+    <!--MessageBox-->
+    <s:String x:Key="string.messagebox.ok">好的</s:String>
+    <s:String x:Key="string.messagebox.calcel">取消</s:String>
+    <!--createClassBox-->
+    <s:String x:Key="string.createClassBox.title">新建類別</s:String>
+    <s:String x:Key="string.createClassBox.save">保存</s:String>
+    <s:String x:Key="string.createClassBox.calcel">放棄</s:String>
+    <!--editClassBox-->
+    <s:String x:Key="string.editClassBox.title">重命名</s:String>
+    <s:String x:Key="string.editClassBox.save">保存</s:String>
+    <s:String x:Key="string.editClassBox.calcel">放棄</s:String>
+    <!--createListBox-->
+    <s:String x:Key="string.createListBox.title">新建短語</s:String>
+    <s:String x:Key="string.createListBox.save">新建</s:String>
+    <s:String x:Key="string.createListBox.calcel">放棄</s:String>
+    <!--editListBox-->
+    <s:String x:Key="string.editListBox.title">編輯短語</s:String>
+    <s:String x:Key="string.editListBox.save">保存變更</s:String>
+    <s:String x:Key="string.editListBox.calcel">放棄變更</s:String>
+
+
+    <!--Delete Is Ok-->
+    <s:String x:Key="string.value.delete_select_Is_ok_class">即將刪除選中的數據,是否確認？</s:String>
+    <s:String x:Key="string.value.delete_select_Is_ok_list">即將刪除選中的數據,是否確認？</s:String>
+
+    <s:String x:Key="Please add a category first">請先新建分類</s:String>
+    <s:String x:Key="getSignErr">獲取唯一標誌失敗 請檢查網絡</s:String>
+
+
+    <s:String x:Key="string.updateBox.updateNow">現在更新</s:String>
+    <s:String x:Key="string.updateBox.updateNext">下次詢問</s:String>
+    <s:String x:Key="string.updateBox.updateSkip">跳過此版本</s:String>
+
+    <s:String x:Key="installDatabaseErr">无法创建初始数据库，请检查网络</s:String>
+
+    <!--Setting Window-->
+    <s:String x:Key="string.setting.window.title">設定</s:String>
+    <s:String x:Key="string.setting.nav.title">基本</s:String>
+    <s:String x:Key="string.setting.nav.snap">吸附設定</s:String>
+    <s:String x:Key="string.setting.nav.backup">備份</s:String>
+    <s:String x:Key="string.setting.nav.hotkeys">熱鍵</s:String>
+    <s:String x:Key="string.setting.nav.info">關於</s:String>
+
+    <s:String x:Key="string.setting.backup.Import_excel">輸入Excel</s:String>
+    <s:String x:Key="string.setting.backup.export_excel">輸出Excel</s:String>
+
+    <s:String x:Key="string.setting.backup.Import_pof">輸入POF / EBF</s:String>
+    <s:String x:Key="string.setting.backup.export_pof">輸出 POF</s:String>
+
+    <s:String x:Key="string.setting.follow.SwitchAdsorption">使用吸附窗口 （短語列表）</s:String>
+    <s:String x:Key="string.setting.follow.Adsorption in left">左側</s:String>
+    <s:String x:Key="string.setting.follow.Adsorption in right">右側</s:String>
+    <s:String x:Key="string.setting.follow.search_bar">搜索栏吸附</s:String>
+
+    <s:String x:Key="string.setting.hotkey.f_Title">F1-F10 熱鍵設定</s:String>
+    <s:String x:Key="string.setting.hotkey.f_isEnabled">啓動F1-F10按鍵功能（對應列表 01-10 號碼）</s:String>
+    <s:String x:Key="string.setting.hotkey.f_up_send">釋放熱鍵時發送（默認為輸入）</s:String>
+    <s:String x:Key="string.setting.hotkey.f_global">全局生效</s:String>
+    <s:String x:Key="string.setting.hotkey.f_send_preview">發送預覽（按下熱鍵展示發送的詳情）</s:String>
+
+    <s:String x:Key="string.setting.base.Auto start at boot">開機啓動</s:String>
+    <s:String x:Key="string.setting.base.Hide homepage on startup">打開時隱藏主頁</s:String>
+    <s:String x:Key="string.setting.base.language">程式語言:</s:String>
+    <s:String x:Key="string.setting.base.other_title">其他設置</s:String>
+    <s:String x:Key="string.setting.base.clipboard_restore">剪貼板自動恢復</s:String>
+    <s:String x:Key="string.setting.base.DoubleClickSend">雙擊列表發送（默認只輸入）</s:String>
+    <s:String x:Key="string.setting.base.showListIndex">顯示列表序號</s:String>
+    <s:String x:Key="string.setting.base.startShowHome">在启动时显示主页</s:String>
+    
+    <s:String x:Key="string.searchWindow.inputTitle">&#xe609; 輸入需要搜索的內容 / 使用TAB 按鍵可以切換搜索 多個關鍵詞可使用空格分割</s:String>
+
+</ResourceDictionary>

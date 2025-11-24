@@ -1,0 +1,13 @@
+[build]
+jobs = 2  # 限制并行作业数，减少内存占用
+
+[profile.dev]
+opt-level = 1  # 轻度优化，减少编译器内存使用
+split-debuginfo = "packed"  # 分离调试信息
+incremental = true  # 启用增量编译
+
+[profile.dev.package."*"]
+opt-level = 2  # 依赖包使用更高优化级别
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/STACK:8388608"]  # 增加链接器栈大小到8MB

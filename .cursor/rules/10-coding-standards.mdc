@@ -1,0 +1,59 @@
+# Rule 10: Coding Standards ("The Vibe": Strict, Anti-Magic, Explicit)
+
+Adhere strictly to the following coding standards. The vibe is: Strict, Anti-Magic, Explicit, and Agentic-First.
+
+## 1. TypeScript Strictness & Anti-Magic
+- **NEVER** use `any`, `@ts-ignore`, or type assertions (`as`). Use Zod parsing or type guards instead.
+- **Explicit Imports:** Do NOT rely on auto-imports. Use absolute imports (e.g., `@/components/Button`).
+- **ALWAYS** use `import type` when importing only types.
+- **Enums:** Avoid `enum`. Prefer union types.
+- **Array Access:** Because `noUncheckedIndexedAccess` is enabled, you MUST check array bounds.
+    ```typescript
+    const users = ["Alice", "Bob"];
+    // BAD (will error)
+    const firstUser: string = users[0];
+    // GOOD
+    const firstUser: string | undefined = users[0];
+    if (firstUser) { /* ... */ }
+    ```
+
+## 2. React & Frontend
+- **Functional Components Only.**
+- **Naming Conventions:**
+  - Components/Files: `PascalCase` (e.g., `CrmContactList.tsx`)
+  - Hooks: `camelCase` starting with `use` (e.g., `useCdpConnection.ts`)
+
+## 3. I/O Boundaries and Zod (CRITICAL)
+- All data entering the TypeScript application from Tauri commands MUST be validated using Zod immediately. This is the I/O boundary.
+
+```typescript
+// Example: src/lib/ipc.ts
+import { invoke } from '@tauri-apps/api/tauri';
+import { UserSchema, type User } from './schemas';
+
+export async function ipcGetUser(userId: string): Promise<User> {
+  // 1. Invoke the Rust command
+  const rawData = await invoke('get_user_command', { userId });
+
+  // 2. Validate immediately at the boundary
+  const result = UserSchema.safeParse(rawData);
+
+  if (!result.success) {
+    console.error("IPC validation failed:", result.error.format());
+    throw new Error("Invalid data structure received from Tauri Core");
+  }
+
+  // 3. Return the validated, type-safe data
+  return result.data;
+}
+```
+
+## 4. Rust Standards
+- **Clippy & Fmt:** Enforce standard Clippy lints (`cargo clippy`) and formatting (`cargo fmt`).
+- **Error Propagation:** Use the `?` operator. Do NOT use `unwrap()` or `expect()` outside of tests or initialization code.
+- **Immutability:** Use `mut` sparingly.
+- **Tauri Commands:** Keep commands thin. They should delegate to domain services and map domain errors to a serializable `CoreError` for the frontend.
+
+## 5. Subjective Readability
+- Write modular code. Ideally, each function should do one thing.
+- Use high-context comments ONLY when the "why" isn't clear from the code itself (e.g., explaining complex Rust optimizations or business rules). Do NOT comment on "what" the code does.

@@ -1,0 +1,36 @@
+# 依赖
+node_modules/
+**/node_modules/
+
+# Rust编译产物
+target/
+**/target/
+target_*/
+
+# 构建产物
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+*.nsi
+
+# 日志文件
+*.log
+*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+.DS_Store
+Thumbs.db
+
+# 环境文件
+.env
+.env.local

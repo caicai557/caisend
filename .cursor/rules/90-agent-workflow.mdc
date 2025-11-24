@@ -1,0 +1,45 @@
+# Rule 90: Agentic Workflow Instructions (The Tauri Sandwich)
+
+This document provides instructions for AI Agents modifying this repository. The codebase is Agentic-First.
+
+## 1. Context Awareness
+- Before making changes, review Rule 00 (Tech Stack) and Rule 10 (Coding Standards).
+- The architecture is an Integrated Desktop Application (Tauri). Backend logic is Rust (`src-tauri`). Frontend is TypeScript (`src`). They communicate via Tauri IPC (Commands). There is no HTTP backend.
+
+## 2. Feature Implementation Workflow (Rust-First)
+
+When adding a new feature (e.g., "Add Contact Tagging"), follow this structured, vertical slice approach. We start with the Rust core.
+
+### Step 1: Define the Domain (Rust Core)
+- Location: `apps/desktop/src-tauri/src/domain/`
+- Action: Define the core data structures (structs with `Serde` derive in `models.rs`) and business logic. This layer must remain pure (independent of infrastructure).
+- Example: Define `Tag` struct and `ContactService::add_tag` method.
+
+### Step 2: Implement Infrastructure Adapters (Rust Core)
+- Location: `apps/desktop/src-tauri/src/adapters/`
+- Action: Implement the necessary infrastructure details.
+- Example: Implement `db::save_tag` using `SQLx`. Ensure migrations are created in `src-tauri/migrations/` if the schema changes.
+
+### Step 3: Expose Functionality via IPC (Rust Core)
+- Location: `apps/desktop/src-tauri/src/commands/`
+- Action: Create a new Tauri command (`#[tauri::command]`).
+- Ensure the command calls the relevant domain service and returns a `Result<T, CoreError>`.
+
+### Step 4: Implement Frontend Integration (TypeScript)
+- Location: `apps/desktop/src/`
+- **Define Validation:** Create Zod schemas in `src/lib/schemas.ts` that mirror the Rust models.
+- **Create IPC Wrapper:** In `src/lib/ipc.ts`, create a type-safe wrapper function to call the new command. **CRITICAL:** Ensure Zod validation occurs here (See Rule 10).
+- **Implement Data Hooks:** Use `TanStack Query` (Mutations/Queries) in `src/hooks/` to interact with the IPC wrapper.
+
+### Step 5: Implement UI Components (TypeScript)
+- Location: `apps/desktop/src/components/` and `apps/desktop/src/routes/`
+- Action: Create React components. Use TanStack Router for navigation and data loading.
+
+## 3. Testing Protocol
+- **Rust (Unit):** All domain logic must have unit tests located in the same file (using `#[cfg(test)]`).
+- **Rust (Integration):** Adapters (like DB access and CDP) must have integration tests.
+- **TypeScript:** Write component tests using Vitest and React Testing Library.
+
+## 4. Commit Protocol
+- Use Conventional Commits.
+- Example: `feat(crm): implement contact tagging domain logic and IPC command`
