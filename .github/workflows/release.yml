@@ -35,17 +35,20 @@ jobs:
           version: 9
 
       - name: Install frontend dependencies
+        shell: bash
         run: |
           cd apps/desktop
           pnpm install
 
       - name: Verify icon files
+        shell: bash
         run: |
           echo "Checking icon files..."
           ls -la apps/desktop/src-tauri/icons/
           file apps/desktop/src-tauri/icons/*.png || true
 
       - name: Manual build for debugging
+        shell: bash
         run: |
           cd apps/desktop
           echo "Running manual tauri build..."
@@ -54,6 +57,7 @@ jobs:
 
       - name: List bundle artifacts
         if: always()
+        shell: bash
         run: |
           echo "Listing bundle directory..."
           ls -R apps/desktop/src-tauri/target/release/bundle/ || echo "Bundle directory not found"
