@@ -8,6 +8,27 @@
         "devUrl": "http://localhost:1420",
         "frontendDist": "../dist"
     },
+    "bundle": {
+        "identifier": "com.teleflow.app",
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "targets": [
+            "msi",
+            "nsis"
+        ],
+        "windows": {
+            "wix": {
+                "language": "en-US"
+            },
+            "nsis": {
+                "displayLanguageSelector": false
+            }
+        }
+    },
     "app": {
         "windows": [
             {
