@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createTestAccount, createTestRule, testAutomation, type Account, type Rule } from '../lib/mvp-api';
+import { createTestAccount, createTestRule, testAutomation, startSession, type Account, type Rule } from '../lib/mvp-api';
 
 export default function MvpDashboard() {
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -17,6 +17,14 @@ export default function MvpDashboard() {
     // 测试表单
     const [testAccountId, setTestAccountId] = useState('');
     const [testMessage, setTestMessage] = useState('');
+
+    const handleStartSession = async (accountId: string) => {
+        try {
+            await startSession(accountId);
+        } catch (error) {
+            alert(`启动会话失败: ${error}`);
+        }
+    };
 
     const handleCreateAccount = async () => {
         if (!accountName.trim()) return;
@@ -93,8 +101,18 @@ export default function MvpDashboard() {
                                 <div className="space-y-2 max-h-48 overflow-y-auto">
                                     {accounts.map((acc) => (
                                         <div key={acc.id} className="p-2 bg-gray-50 rounded text-sm">
-                                            <div className="font-medium">{acc.name}</div>
-                                            <div className="text-xs text-gray-500">{acc.id}</div>
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <div className="font-medium">{acc.name}</div>
+                                                    <div className="text-xs text-gray-500">{acc.id}</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleStartSession(acc.id)}
+                                                    className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-xs font-medium"
+                                                >
+                                                    登录
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                     {accounts.length === 0 && (

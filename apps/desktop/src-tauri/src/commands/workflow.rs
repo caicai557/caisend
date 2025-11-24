@@ -4,14 +4,13 @@ use crate::adapters::db::workflow_repo::WorkflowRepository;
 use crate::state::AppState;
 use crate::error::CoreError;
 use tauri::State;
-use std::sync::Arc;
 
 #[tauri::command]
 pub async fn save_workflow_definition(
     state: State<'_, AppState>,
     definition: WorkflowDefinition,
 ) -> Result<(), CoreError> {
-    let repo = WorkflowRepository::new(state.db_pool.clone());
+    let repo = WorkflowRepository::new(state.pool().clone());
     repo.save_definition(&definition).await?;
     Ok(())
 }
@@ -21,7 +20,7 @@ pub async fn get_workflow_definition(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<Option<WorkflowDefinition>, CoreError> {
-    let repo = WorkflowRepository::new(state.db_pool.clone());
+    let repo = WorkflowRepository::new(state.pool().clone());
     repo.get_definition(&id).await
 }
 
@@ -35,7 +34,7 @@ pub async fn list_active_instances(
     let instances = sqlx::query_as::<_, WorkflowInstance>(
         "SELECT * FROM workflow_instances WHERE status IN ('Running', 'WaitingForResponse') ORDER BY updated_at DESC LIMIT 50"
     )
-    .fetch_all(&state.db_pool)
+    .fetch_all(state.pool())
     .await
     .map_err(|e| CoreError::DbError(e.to_string()))?;
 

@@ -26,10 +26,11 @@ async-trait = "0.1"
 moka = { version = "0.12", features = ["future"] }
 futures = "0.3.31"
 log = "0.4.28"
-enigo = "0.2"
+enigo = "0.3"
+rand = "0.8"
 
 [lib]
-name = "teleflow_desktop"
+name = "teleflow_desktop_lib"
 path = "src/lib.rs"
 crate-type = ["lib", "cdylib", "staticlib"]
 
@@ -45,6 +46,7 @@ tokio = { version = "1.0", features = ["full", "test-util"] }
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+legacy-tests = []
 
 [profile.release]
 lto = true

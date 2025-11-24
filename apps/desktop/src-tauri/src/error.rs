@@ -10,7 +10,7 @@ pub enum CoreError {
 
     #[error("Domain error: {0}")]
     DomainError(String),
-    
+
     #[error("Unknown error: {0}")]
     Unknown(String),
 
@@ -69,7 +69,12 @@ impl From<sqlx::migrate::MigrateError> for CoreError {
 
 // Backward compatibility alias
 impl CoreError {
+    #[allow(non_snake_case)]
     pub fn Db(msg: String) -> Self {
+        CoreError::DbError(msg)
+    }
+
+    pub fn db(msg: String) -> Self {
         CoreError::DbError(msg)
     }
 }

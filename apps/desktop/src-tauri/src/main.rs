@@ -4,5 +4,5 @@
 )]
 
 fn main() {
-    teleflow_desktop::run();
+    teleflow_desktop_lib::run();
 }

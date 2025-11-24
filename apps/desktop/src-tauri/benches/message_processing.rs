@@ -1,14 +1,14 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use std::sync::Arc;
+use teleflow_desktop::adapters::db::init_db;
 use teleflow_desktop::domain::automation::RuleEngine;
 use teleflow_desktop::domain::models::{Message, Rule};
 use teleflow_desktop::state::AppState;
-use teleflow_desktop::adapters::db::init_db;
-use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 fn benchmark_rule_evaluation(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
-    
+
     // Setup
     let (engine, message) = rt.block_on(async {
         let db_pool = init_db("sqlite::memory:").await.unwrap();

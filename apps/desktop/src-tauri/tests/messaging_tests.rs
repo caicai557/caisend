@@ -1,19 +1,19 @@
-use teleflow_desktop::domain::models::Message;
-use teleflow_desktop::domain::events::AppEvent;
-use teleflow_desktop::state::AppState;
-use teleflow_desktop::adapters::db::init_db;
-use std::sync::Arc;
-use tokio::sync::broadcast;
+use teleflow_desktop_lib::actuator::scheduler::FocusScheduler;
+use teleflow_desktop_lib::adapters::db::init_db;
+use teleflow_desktop_lib::domain::events::AppEvent;
+use teleflow_desktop_lib::domain::models::Message;
+use teleflow_desktop_lib::state::{AppState, AppStore, Cold};
 
 #[tokio::test]
 async fn test_message_broadcast() {
     // Setup
     let db_pool = init_db("sqlite::memory:").await.unwrap();
-    // Run migrations manually or ensure init_db does it. 
+    // Run migrations manually or ensure init_db does it.
     // init_db calls sqlx::migrate!(), so it should work if migrations are embedded.
-    
-    let app_state = AppState::new(db_pool);
-    let mut rx = app_state.event_bus.subscribe();
+
+    let cold: AppStore<Cold> = AppStore::new(db_pool, FocusScheduler::noop());
+    let app_state: AppState = cold.into_ready();
+    let mut rx = app_state.subscribe_events();
 
     // Simulate incoming message
     let message = Message {
@@ -27,7 +27,9 @@ async fn test_message_broadcast() {
     };
 
     // Action: Send to event bus
-    let _ = app_state.event_bus.send(AppEvent::NewMessageReceived(message.clone()));
+    let _ = app_state
+        .event_sender()
+        .send(AppEvent::NewMessageReceived(message.clone()));
 
     // Assert: Receive from event bus
     let received = rx.recv().await.unwrap();
@@ -36,5 +38,6 @@ async fn test_message_broadcast() {
             assert_eq!(msg.content, "Hello World");
             assert_eq!(msg.id, "msg_1");
         }
+        _ => panic!("Unexpected event variant"),
     }
 }

@@ -3,28 +3,27 @@ use crate::domain::workflow::schema::{WorkflowDefinition, Node, Edge, NodeType, 
 use crate::domain::workflow::tracker::InstanceStateTracker;
 use crate::domain::models::Message;
 use crate::adapters::db::workflow_repo::WorkflowRepository;
-use crate::state::AppState;
 use crate::error::CoreError;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use chrono::Utc;
+use tauri::AppHandle;
 
 pub struct WorkflowEngine {
     tracker: Arc<InstanceStateTracker>,
     repo: Arc<WorkflowRepository>,
-    app_state: Arc<AppState>,
+    app_handle: AppHandle,
 }
 
 impl WorkflowEngine {
     pub fn new(
         tracker: Arc<InstanceStateTracker>,
         repo: Arc<WorkflowRepository>,
-        app_state: Arc<AppState>,
+        app_handle: AppHandle,
     ) -> Self {
         Self {
             tracker,
             repo,
-            app_state,
+            app_handle,
         }
     }
 
@@ -142,7 +141,7 @@ impl WorkflowEngine {
                 println!("Workflow Sending Message to {}: {}", instance.contact_id, content);
                 
                 // TODO: Actually send message
-                // self.app_state.connection_manager...
+                // self.app_handle.state::<AppState>().connections()...
                 
                 // Auto-transition if there's an unconditional edge
                 self.auto_transition(&mut instance, node, def).await?;

@@ -1,6 +1,6 @@
-use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, Pool, Sqlite, SqlitePool};
-use std::str::FromStr;
 use crate::error::CoreError;
+use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, SqlitePool};
+use std::str::FromStr;
 
 pub mod mvp_repo;
 

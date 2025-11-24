@@ -1,9 +1,7 @@
+use crate::error::CoreError;
 use async_trait::async_trait;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use moka::future::Cache;
 use sqlx::SqlitePool;
-use crate::error::CoreError;
 
 #[async_trait]
 pub trait TranslationPort: Send + Sync {
@@ -24,7 +22,7 @@ impl TranslationPort for GoogleTranslateAdapter {
 pub struct CachedTranslator {
     adapter: Box<dyn TranslationPort>,
     l1_cache: Cache<String, String>, // Key: "text:lang", Value: translated_text
-    db_pool: SqlitePool,
+    _db_pool: SqlitePool,
 }
 
 impl CachedTranslator {
@@ -32,7 +30,7 @@ impl CachedTranslator {
         Self {
             adapter,
             l1_cache: Cache::new(1000), // Hold 1000 translations in memory
-            db_pool,
+            _db_pool: db_pool,
         }
     }
 

@@ -1,33 +1,29 @@
-use crate::state::AppState;
 use crate::domain::events::AppEvent;
 use crate::domain::workflow::instance::InstanceStatus;
-use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+use crate::state::AppState;
 use chrono::Utc;
+use tauri::{AppHandle, Manager};
+use tokio::time::{sleep, Duration};
 
 pub struct WorkflowScheduler {
-    app_state: Arc<AppState>,
+    app_handle: AppHandle,
 }
 
 impl WorkflowScheduler {
-    pub fn new(app_state: Arc<AppState>) -> Self {
-        Self { app_state }
+    pub fn new(app_handle: AppHandle) -> Self {
+        Self { app_handle }
     }
 
     pub async fn start(&self) {
-        let app_state = self.app_state.clone();
+        let app_handle = self.app_handle.clone();
         
         tokio::spawn(async move {
             loop {
                 // Poll every 1 second
                 sleep(Duration::from_secs(1)).await;
 
-                // Find due instances
-                // We need a method in Repo to find due instances. 
-                // Since we don't have direct access to Repo here (it's in AppState but we need to construct it or access it via a service),
-                // We'll assume we can run a query via db_pool directly for simplicity in this vertical slice.
-                
                 let now = Utc::now().to_rfc3339();
+                let state: tauri::State<AppState> = app_handle.state();
                 
                 use sqlx::Row;
                 let due_instances = sqlx::query(
@@ -40,7 +36,7 @@ impl WorkflowScheduler {
                 .bind(InstanceStatus::Scheduled.to_string())
                 .bind(InstanceStatus::WaitingForResponse.to_string())
                 .bind(now)
-                .fetch_all(&app_state.db_pool)
+                .fetch_all(state.pool())
                 .await;
 
                 match due_instances {
@@ -48,7 +44,7 @@ impl WorkflowScheduler {
                         for row in rows {
                             // Emit Event
                             let contact_id: String = row.get("contact_id");
-                            let _ = app_state.event_bus.send(AppEvent::WorkflowTimerTriggered { 
+                            let _ = state.event_sender().send(AppEvent::WorkflowTimerTriggered { 
                                 contact_id 
                             });
                         }

@@ -1,14 +1,14 @@
 use crate::state::AppState;
-use std::sync::Arc;
 use chrono::Local;
+use tauri::{AppHandle, Manager};
 
 pub struct AnalyticsEngine {
-    state: Arc<AppState>,
+    app_handle: AppHandle,
 }
 
 impl AnalyticsEngine {
-    pub fn new(state: Arc<AppState>) -> Self {
-        Self { state }
+    pub fn new(app_handle: AppHandle) -> Self {
+        Self { app_handle }
     }
 
     pub async fn track_event(&self, account_id: &str, event_type: &str) -> Result<(), String> {
@@ -32,10 +32,11 @@ impl AnalyticsEngine {
             column
         );
 
+        let state: tauri::State<AppState> = self.app_handle.state();
         sqlx::query(&query)
             .bind(date)
             .bind(account_id)
-            .execute(&self.state.db_pool)
+            .execute(state.pool())
             .await
             .map_err(|e| e.to_string())?;
 

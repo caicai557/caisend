@@ -39,7 +39,7 @@ pub async fn update_contact(
     .bind(name)
     .bind(tags_json)
     .bind(notes)
-    .fetch_one(&state.db_pool)
+    .fetch_one(state.pool())
     .await
     .map_err(|e| CoreError::DbError(e.to_string()))?;
 
@@ -57,7 +57,7 @@ pub async fn get_contact(
     )
     .bind(account_id)
     .bind(remote_id)
-    .fetch_optional(&state.db_pool)
+    .fetch_optional(state.pool())
     .await
     .map_err(|e| CoreError::DbError(e.to_string()))?;
 

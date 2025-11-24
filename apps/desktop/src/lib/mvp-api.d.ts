@@ -20,4 +20,5 @@ export declare function getSystemInfo(): Promise<{
     core_version: string;
     initialized: boolean;
 }>;
+export declare function startSession(accountId: string): Promise<void>;
 //# sourceMappingURL=mvp-api.d.ts.map

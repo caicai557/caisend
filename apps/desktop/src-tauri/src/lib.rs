@@ -1,16 +1,21 @@
+pub mod actuator;
 pub mod adapters;
 pub mod commands;
 pub mod domain;
 pub mod error;
-pub mod state;
 pub mod managers;
-pub mod actuator;
+pub mod state;
 
-use state::AppState;
+use actuator::scheduler::FocusScheduler;
 use adapters::db::init_db;
+use adapters::db::mvp_repo::MvpRepository;
 use domain::automation::RuleEngine;
+use domain::events::AppEvent;
+use domain::models::Message;
+use state::{AppState, AppStore, Cold};
+use std::collections::HashSet;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,59 +24,139 @@ pub fn run() {
         .setup(|app| {
             tauri::async_runtime::block_on(async {
                 let db_url = "sqlite://accounts.db";
-                let db_pool = init_db(db_url).await.expect("Failed to initialize database");
-                let app_state = AppState::new(db_pool);
+                let db_pool = init_db(db_url)
+                    .await
+                    .expect("Failed to initialize database");
+                let scheduler = FocusScheduler::new(app.handle().clone());
+                let cold_state = AppStore::<Cold>::new(db_pool, scheduler);
                 /*
-                let app_state_arc = Arc::new(AppState {
-                    db_pool: app_state.db_pool.clone(),
-                    connection_manager: app_state.connection_manager.clone(),
-                    event_bus: app_state.event_bus.clone(),
-                    rule_cache: app_state.rule_cache.clone(),
-                });
-                
-                // Initialize Workflow Components
-                let wf_repo = Arc::new(adapters::db::workflow_repo::WorkflowRepository::new(app_state.db_pool.clone()));
-                let wf_tracker = Arc::new(domain::workflow::tracker::InstanceStateTracker::new(wf_repo.clone()));
-                let wf_engine = Arc::new(domain::workflow::engine::WorkflowEngine::new(wf_tracker, wf_repo, app_state_arc.clone()));
+                // Workflow/bootstrap code can take AppHandle::state::<AppState>()
+                // to avoid wrapping the state in Arc. Example:
+                // let wf_repo = adapters::db::workflow_repo::WorkflowRepository::new(cold_state.pool().clone());
+                // let wf_tracker = domain::workflow::tracker::InstanceStateTracker::new(Arc::new(wf_repo));
+                // let wf_engine = domain::workflow::engine::WorkflowEngine::new(wf_tracker, wf_repo, app.handle().clone());
+                 */
 
-                // Initialize Rule Engine
-                let rule_engine = Arc::new(tokio::sync::RwLock::new(
-                    RuleEngine::new(app_state_arc.clone(), wf_engine.clone())
-                ));
-                
-                // Initialize Orchestrator
-                let orchestrator = domain::automation::orchestrator::AutomationOrchestrator::new(
-                    rule_engine.clone(),
-                    wf_engine.clone(),
-                    app_state_arc.clone()
-                );
-                orchestrator.start().await;
+                // Load rules into cache
+                let repo = MvpRepository::new(cold_state.pool().clone());
+                let rule_seed = match repo.get_all_rules().await {
+                    Ok(rules) => rules,
+                    Err(err) => {
+                        println!("Failed to load rules from database: {err}");
+                        Vec::new()
+                    }
+                };
+                let rule_total = rule_seed.len();
+                let rule_accounts = rule_seed
+                    .iter()
+                    .filter_map(|rule| rule.account_id.as_ref())
+                    .collect::<HashSet<_>>()
+                    .len();
+                let app_state = cold_state.with_rule_cache(rule_seed);
 
-                // Initialize Scheduler
-                let scheduler = domain::workflow::scheduler::WorkflowScheduler::new(app_state_arc.clone());
-                scheduler.start().await;
-                */
-                
+                println!("Loaded {rule_total} rules into cache for {rule_accounts} account(s)");
+
                 app.manage(app_state);
-                
-                // MVP-T4: IPC Event Listener
+
+                // IPC Event Listener -> EventBus + RuleEngine
                 let handle = app.handle().clone();
+                let rule_engine = Arc::new(RuleEngine::new(handle.clone()));
                 app.listen("automation_event", move |event| {
-                    if let Ok(payload) = serde_json::from_str::<serde_json::Value>(event.payload()) {
-                        println!("Received automation event: {:?}", payload);
-                        // Parse and publish to event bus
-                        // This requires async context or blocking send if bus is sync.
-                        // broadcast::Sender::send is sync.
-                        
-                        // We need to access state.
-                        // Since we are in a closure, we need to capture state.
-                        // But app.listen closure is 'static + Send.
-                        
-                        // Simplified: Just log for now, or use handle.state::<AppState>()
-                        if let Some(state) = handle.try_state::<AppState>() {
-                             // Logic to parse payload and send AppEvent
-                             // For MVP, we just log.
-                             // In real implementation, we would map JSON to AppEvent
+                    let payload_raw = event.payload();
+                    let state = match handle.try_state::<AppState>() {
+                        Some(s) => s,
+                        None => return,
+                    };
+
+                    #[derive(serde::Deserialize, Debug)]
+                    struct AutomationPayload {
+                        #[serde(rename = "eventType")]
+                        event_type: String,
+                        #[serde(default)]
+                        payload: serde_json::Value,
+                    }
+
+                    let parsed: AutomationPayload = match serde_json::from_str(payload_raw) {
+                        Ok(p) => p,
+                        Err(err) => {
+                            println!("automation_event parse failed: {err}");
+                            return;
+                        }
+                    };
+
+                    // account_id: prefer payload.account_id, fallback to default
+                    let account_id = parsed
+                        .payload
+                        .get("account_id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("default")
+                        .to_string();
+
+                    match parsed.event_type.as_str() {
+                        "NewMessage" => {
+                            let content = parsed
+                                .payload
+                                .get("content")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let chat_id = parsed
+                                .payload
+                                .get("chat_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or(&account_id)
+                                .to_string();
+                            let sender = parsed
+                                .payload
+                                .get("sender")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("remote")
+                                .to_string();
+
+                            let message = Message {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                conversation_id: chat_id.clone(),
+                                sender_id: sender,
+                                content: content.clone(),
+                                message_type: "text".to_string(),
+                                status: "received".to_string(),
+                                created_at: chrono::Utc::now().to_rfc3339(),
+                            };
+
+                            let _ = state
+                                .event_sender()
+                                .send(AppEvent::NewMessageReceived(message));
+
+                            // Fire rule engine with account_id
+                            let re = rule_engine.clone();
+                            tauri::async_runtime::spawn(async move {
+                                let _ = re.evaluate_message(&content, &account_id).await;
+                            });
+                        }
+                        "InviteLinkFound" => {
+                            let link = parsed
+                                .payload
+                                .get("link")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string();
+                            let _ = state
+                                .event_sender()
+                                .send(AppEvent::InviteLinkFound { link });
+                        }
+                        "UnreadChatDetected" => {
+                            let chat_id = parsed
+                                .payload
+                                .get("chat_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or_default()
+                                .to_string();
+                            let _ = state
+                                .event_sender()
+                                .send(AppEvent::UnreadChatDetected { chat_id });
+                        }
+                        other => {
+                            println!("automation_event ignored type: {}", other);
                         }
                     }
                 });

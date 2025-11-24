@@ -114,3 +114,12 @@ export async function getSystemInfo(): Promise<{ core_version: string; initializ
     }
 }
 
+export async function startSession(accountId: string): Promise<void> {
+    if (!isTauri()) {
+        console.log('Mock Mode: startSession', accountId);
+        await new Promise(r => setTimeout(r, 500));
+        return;
+    }
+    await invoke('start_session', { account_id: accountId });
+}
+

@@ -1,6 +1,6 @@
-pub mod models;
+pub mod automation;
 pub mod events;
 pub mod messaging;
-pub mod automation;
+pub mod models;
 // pub mod analytics;
 // pub mod workflow;

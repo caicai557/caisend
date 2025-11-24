@@ -24,7 +24,7 @@ pub async fn create_account(
     .bind(name)
     .bind(status)
     .bind(proxy_config)
-    .fetch_one(&state.db_pool)
+    .fetch_one(state.pool())
     .await?;
 
     Ok(account)
@@ -39,7 +39,7 @@ pub async fn list_accounts(state: State<'_, AppState>) -> Result<Vec<Account>, C
         ORDER BY created_at DESC
         "#
     )
-    .fetch_all(&state.db_pool)
+    .fetch_all(state.pool())
     .await?;
 
     Ok(accounts)
