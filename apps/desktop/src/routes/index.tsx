@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ipcGetSystemInfo, ipcListAccounts, ipcSendMessage } from '@/lib/ipc'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { listen } from '@tauri-apps/api/event'
 import type { Message, Account } from '@/lib/schemas'
 import { Wallet, Activity, Send, MoreHorizontal, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/' as any)({
   component: Index,
 })
 
@@ -67,12 +67,11 @@ function AccountCard({ account, onClick, isSelected }: { account: Account; onCli
 }
 
 function Index() {
-  const _queryClient = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
-  const { data: _systemInfo } = useQuery({
+  useQuery({
     queryKey: ['systemInfo'],
     queryFn: ipcGetSystemInfo,
   })
@@ -85,7 +84,7 @@ function Index() {
   // Auto-select first account
   useEffect(() => {
     if (accounts && accounts.length > 0 && !selectedAccountId) {
-      setSelectedAccountId(accounts[0].id)
+      setSelectedAccountId(accounts[0]?.id || null)
     }
   }, [accounts, selectedAccountId])
 
@@ -97,7 +96,7 @@ function Index() {
   })
 
   useEffect(() => {
-    const unlisten = listen<Message>('new-message', (event) => {
+    const unlisten = listen<Message>('new-message', (event: any) => {
       console.log("New message received:", event.payload)
       setMessages((prev) => [...prev, event.payload])
     })

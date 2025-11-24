@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { ipcGetSystemInfo, ipcListAccounts, ipcSendMessage } from '@/lib/ipc';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { Wallet, Activity, Send, MoreHorizontal, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 export const Route = createFileRoute('/')({
@@ -29,11 +29,10 @@ function AccountCard({ account, onClick, isSelected }) {
       `, children: [_jsx("div", { className: `absolute -top-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}` }), _jsxs("div", { className: "relative z-10 flex flex-col h-full justify-between", children: [_jsxs("div", { className: "flex justify-between items-start mb-4", children: [_jsx("div", { className: "p-2 rounded-full bg-white/5 border border-white/10", children: _jsx(Wallet, { className: "w-5 h-5 text-zinc-400" }) }), _jsxs("div", { className: `flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${trend === 'up' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`, children: [trend === 'up' ? _jsx(ArrowUpRight, { className: "w-3 h-3" }) : _jsx(ArrowDownLeft, { className: "w-3 h-3" }), "2.4%"] })] }), _jsxs("div", { children: [_jsx("h3", { className: "text-zinc-500 text-sm font-medium mb-1", children: account.name }), _jsxs("div", { className: "text-2xl font-bold text-white tracking-tight tabular-nums", children: ["$", balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })] })] }), _jsxs("div", { className: "mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-xs text-zinc-500", children: [_jsx("span", { children: account.status }), _jsxs("span", { children: ["ID: ", account.id.slice(0, 4)] })] })] })] }));
 }
 function Index() {
-    const _queryClient = useQueryClient();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [selectedAccountId, setSelectedAccountId] = useState(null);
-    const { data: _systemInfo } = useQuery({
+    useQuery({
         queryKey: ['systemInfo'],
         queryFn: ipcGetSystemInfo,
     });
@@ -44,12 +43,12 @@ function Index() {
     // Auto-select first account
     useEffect(() => {
         if (accounts && accounts.length > 0 && !selectedAccountId) {
-            setSelectedAccountId(accounts[0].id);
+            setSelectedAccountId(accounts[0]?.id || null);
         }
     }, [accounts, selectedAccountId]);
     const sendMessageMutation = useMutation({
         mutationFn: async (content) => {
-            if (!selectedAccountId)
+            if (!selectedAccountId || !accounts)
                 return;
             await ipcSendMessage(selectedAccountId, "demo_convo", content);
         },

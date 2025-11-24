@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { Activity, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 
-export const Route = createFileRoute('/workflows/')({
+export const Route = createFileRoute('/workflows/' as any)({
     component: WorkflowList,
 })
 

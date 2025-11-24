@@ -14,7 +14,7 @@ import { ipcSaveWorkflowDefinition } from '@/lib/ipc'
 import { WorkflowDefinition } from '@/lib/schemas'
 import { v4 as uuidv4 } from 'uuid'
 
-export const Route = createFileRoute('/workflows/editor')({
+export const Route = createFileRoute('/workflows/editor' as any)({
     component: WorkflowEditor,
 })
 

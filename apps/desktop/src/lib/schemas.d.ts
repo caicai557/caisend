@@ -4,12 +4,12 @@ export declare const UserSchema: z.ZodObject<{
     name: z.ZodString;
     email: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    id: string;
     email: string;
 }, {
-    id: string;
     name: string;
+    id: string;
     email: string;
 }>;
 export type User = z.infer<typeof UserSchema>;
@@ -31,15 +31,15 @@ export declare const AccountSchema: z.ZodObject<{
     proxy_config: z.ZodNullable<z.ZodString>;
     created_at: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
     status: string;
+    id: string;
     proxy_config: string | null;
     created_at: string;
 }, {
-    id: string;
     name: string;
     status: string;
+    id: string;
     proxy_config: string | null;
     created_at: string;
 }>;
@@ -53,16 +53,16 @@ export declare const MessageSchema: z.ZodObject<{
     status: z.ZodString;
     created_at: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: string;
+    id: string;
     created_at: string;
     conversation_id: string;
     sender_id: string;
     content: string;
     message_type: string;
 }, {
-    id: string;
     status: string;
+    id: string;
     created_at: string;
     conversation_id: string;
     sender_id: string;
@@ -82,22 +82,22 @@ export declare const ContactSchema: z.ZodObject<{
     created_at: z.ZodString;
     updated_at: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string | null;
+    id: string;
+    account_id: string;
     email: string | null;
     created_at: string;
-    account_id: string;
     remote_id: string;
     phone: string | null;
     tags: string | null;
     notes: string | null;
     updated_at: string;
 }, {
-    id: string;
     name: string | null;
+    id: string;
+    account_id: string;
     email: string | null;
     created_at: string;
-    account_id: string;
     remote_id: string;
     phone: string | null;
     tags: string | null;
@@ -319,8 +319,8 @@ export declare const WorkflowDefinitionSchema: z.ZodObject<{
     created_at: z.ZodString;
     updated_at: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     name: string;
+    id: string;
     created_at: string;
     updated_at: string;
     version: string;
@@ -346,8 +346,8 @@ export declare const WorkflowDefinitionSchema: z.ZodObject<{
         } | null | undefined;
     }[];
 }, {
-    id: string;
     name: string;
+    id: string;
     created_at: string;
     updated_at: string;
     version: string;
@@ -385,8 +385,8 @@ export declare const WorkflowInstanceSchema: z.ZodObject<{
     created_at: z.ZodString;
     updated_at: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    id: string;
     status: string;
+    id: string;
     created_at: string;
     updated_at: string;
     definition_id: string;
@@ -395,8 +395,8 @@ export declare const WorkflowInstanceSchema: z.ZodObject<{
     state_data: string | null;
     next_execution_time: string | null;
 }, {
-    id: string;
     status: string;
+    id: string;
     created_at: string;
     updated_at: string;
     definition_id: string;
