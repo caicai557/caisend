@@ -33,11 +33,65 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: 9
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
 
       - name: Install frontend dependencies
         run: |
           cd apps/desktop
           pnpm install
+
+      - name: Verify icon files
+        run: |
+          echo "Checking icon files..."
+          ls -la apps/desktop/src-tauri/icons/
+          file apps/desktop/src-tauri/icons/*.png || true
+
+      - name: Manual build for debugging
+        run: |
+          cd apps/desktop
+          echo "Running manual tauri build..."
+          pnpm tauri build --verbose
+        continue-on-error: false
+
+      - name: List bundle artifacts
+        if: always()
+        run: |
+          echo "Listing bundle directory..."
+          ls -R apps/desktop/src-tauri/target/release/bundle/ || echo "Bundle directory not found"
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
