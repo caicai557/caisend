@@ -26,8 +26,10 @@
     },
     "devDependencies": {
         "@tanstack/router-devtools": "^1.139.3",
+        "@tanstack/router-vite-plugin": "^1.139.3",
         "@tauri-apps/cli": "^2.0.0-beta",
         "@teleflow/ts-config": "workspace:^",
+        "@types/node": "^24.10.1",
         "@types/react": "^18.2.0",
         "@types/react-dom": "^18.2.0",
         "@types/uuid": "^11.0.0",
