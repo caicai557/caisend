@@ -1,17 +1,22 @@
 use crate::error::CoreError;
+use crate::managers::cdp_manager::{CdpManager, DEFAULT_WEBVIEW2_CDP_PORT};
 use crate::state::AppState;
 use tauri::State;
 
 #[tauri::command]
 pub async fn send_message(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
+    cdp_manager: State<'_, CdpManager>,
     account_id: String,
     _conversation_id: String,
     content: String,
 ) -> Result<(), CoreError> {
-    let manager = state.connections().read().await;
+    cdp_manager
+        .connect(account_id.clone(), DEFAULT_WEBVIEW2_CDP_PORT)
+        .await
+        .map_err(|e| CoreError::Unknown(format!("Failed to establish CDP session: {}", e)))?;
 
-    if let Some(_client) = manager.get_session(&account_id) {
+    if let Some(_browser) = cdp_manager.get_browser(&account_id).await {
         // 1. Focus the input field (Selector would be platform specific)
         // For MVP, we assume there's an active element or we select 'body'
         // In reality: client.browser.find_element("textarea").click()...
@@ -34,6 +39,9 @@ pub async fn send_message(
 
         Ok(())
     } else {
-        Err(CoreError::Unknown("Session not found".to_string()))
+        Err(CoreError::Unknown(format!(
+            "CDP session not found for account {}",
+            account_id
+        )))
     }
 }

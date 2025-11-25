@@ -66,8 +66,8 @@ pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Re
     element.focus().await?;
     tokio::time::sleep(Duration::from_millis(100)).await;
     
-    // Type text using keyboard (generates trusted events)
-    page.keyboard().type_str(text).await?;
+    // Type text using element helper (generates trusted input events)
+    element.type_str(text).await?;
     tracing::info!("CDP: Typing successful");
     Ok(())
 }
@@ -76,6 +76,10 @@ pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Re
 pub async fn execute_keypress(browser: &Browser, key: &str) -> Result<()> {
     tracing::info!("CDP: Pressing key '{}'", key);
     let page = get_active_page(browser).await?;
-    page.keyboard().press_key(key).await?;
+    let body = page
+        .find_element("body")
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to focus body for keypress: {:?}", e))?;
+    body.press_key(key).await?;
     Ok(())
 }

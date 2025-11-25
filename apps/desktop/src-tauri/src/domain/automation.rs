@@ -1,6 +1,6 @@
 use crate::actuator::service::{execute_click, execute_typing};
 use crate::domain::models::{AutomationRule, TriggerType};
-use crate::managers::cdp_manager::CdpManager;
+use crate::managers::cdp_manager::{CdpManager, DEFAULT_WEBVIEW2_CDP_PORT};
 use crate::state::AppState;
 use rand::Rng;
 use tauri::{AppHandle, Manager};
@@ -89,7 +89,7 @@ impl RuleEngine {
 async fn execute_reply_sequence(
     rule: AutomationRule,
     account_id: String,
-    cdp_manager: std::sync::Arc<CdpManager>,
+    cdp_manager: CdpManager,
 ) -> Result<(), String> {
     if rule.reply_text.is_none() {
         return Ok(());
@@ -105,6 +105,11 @@ async fn execute_reply_sequence(
     tracing::info!("Delaying automation by {}ms", delay_ms);
     sleep(Duration::from_millis(delay_ms as u64)).await;
 
+    cdp_manager
+        .connect(account_id.clone(), DEFAULT_WEBVIEW2_CDP_PORT)
+        .await
+        .map_err(|e| format!("Failed to establish CDP connection: {}", e))?;
+
     // Get browser instance
     let browser = cdp_manager
         .get_browser(&account_id)
@@ -118,7 +123,7 @@ async fn execute_reply_sequence(
     // Type text into input
     if let Some(text) = rule.reply_text.clone() {
         tracing::info!("Typing text: {}", text);
-        execute_typing(&browser, input_selector, &text)
+        execute_typing(browser.as_ref(), input_selector, &text)
             .await
             .map_err(|e| format!("CDP typing failed: {}", e))?;
         
@@ -127,11 +132,10 @@ async fn execute_reply_sequence(
 
     // Click send button
     tracing::info!("Clicking send button");
-    execute_click(&browser, send_button_selector)
+    execute_click(browser.as_ref(), send_button_selector)
         .await
         .map_err(|e| format!("CDP click failed: {}", e))?;
 
     tracing::info!("Automation sequence completed successfully");
     Ok(())
 }
-

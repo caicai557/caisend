@@ -1,0 +1,150 @@
+# CDP 自动化迁移实施计划
+
+本计划旨在统一并完善 CDP 自动化架构，移除冗余代码，修复编译错误。
+
+## 问题分析
+
+代码库当前存在以下问题：
+
+1. **双重 CDP 实现**：存在两套 CDP 客户端实现
+   - [CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12)（新架构）：直接管理 `Browser` 对象
+   - [CdpClient](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs#6-11)（旧架构）：在 [state.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs) 中被引用但在 [adapters/cdp/mod.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs) 中定义
+
+2. **编译错误**：[state.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs) 引用了 [CdpClient](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs#6-11) 类型但未导入
+
+3. **架构冲突**：
+   - [lib.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/lib.rs) 已集成 [CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12)
+   - [state.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs) 中的 [ConnectionManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs#9-12) 使用 [CdpClient](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs#6-11)
+   - [domain/automation.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/domain/automation.rs) 使用 [CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12)（正确架构）
+
+## 用户审核要求
+
+> [!IMPORTANT]
+> **架构统一决策**
+> 
+> 我们将采用 **[CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12)** 作为唯一的 CDP 管理方案，原因：
+> - 已在 [lib.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/lib.rs) 和 [domain/automation.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/domain/automation.rs) 中集成
+> - 直接管理 `Browser` 对象，架构更简洁
+> - 已实现连接、断开连接、获取浏览器实例等核心功能
+> 
+> 将**移除** [adapters/cdp/mod.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs) 中的 [CdpClient](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs#6-11) 及其相关引用。
+
+> [!WARNING]
+> **状态管理变更**
+> 
+> [state.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs) 中的 [ConnectionManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs#9-12) 将被移除，因为：
+> - [CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12) 已直接在 [lib.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/lib.rs) 中通过 `app.manage()` 管理
+> - 无需在 `AppState` 中重复管理连接
+> - 简化状态管理架构
+
+## 建议的代码变更
+
+### 核心架构
+
+#### [MODIFY] [state.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs)
+
+**变更内容**：
+- 移除 [ConnectionManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs#9-12) 结构体及其所有方法（第 9-27 行）
+- 从 [AppStore](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs#32-39) 中移除 `connection_manager` 字段
+- 移除 [connections()](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/state.rs#47-50) 方法
+
+**理由**：[CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12) 已在应用层面管理，无需在状态中重复
+
+---
+
+#### [DELETE] [adapters/cdp/mod.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs)
+
+**理由**：[CdpClient](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/adapters/cdp/mod.rs#6-11) 实现已被 [CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12) 替代，该文件不再需要
+
+---
+
+### 清理与更新
+
+#### [MODIFY] [lib.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/lib.rs)
+
+**变更内容**：
+- 确认 [CdpManager](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/managers/cdp_manager.rs#9-12) 初始化代码正确（第 31-32 行已存在）
+- 无需额外修改
+
+---
+
+#### [MODIFY] [actuator/service.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/actuator/service.rs)
+
+**变更内容**：
+- 代码已正确实现 CDP 功能
+- 添加更多错误处理和重试逻辑（可选增强）
+
+---
+
+#### [MODIFY] [main.rs](file:///c:/Users/hybnb/caisend/apps/desktop/src-tauri/src/main.rs)
+
+**变更内容**：
+- WebView2 CDP 端口配置已完成（第 18-28 行）
+- 日志配置已完成（第 9-16 行）
+- 无需额外修改
+
+## 验证计划
+
+### 自动化测试
+
+由于当前项目结构中未找到专门的单元测试或集成测试文件，我们将采用以下验证策略：
+
+#### 1. 编译验证
+```powershell
+# 在 apps/desktop/src-tauri 目录下运行
+cargo build
+```
+**预期结果**：无编译错误，所有模块正确编译
+
+#### 2. 依赖检查
+```powershell
+# 验证 CDP 依赖正确安装
+cargo tree | Select-String chromiumoxide
+```
+**预期结果**：显示 `chromiumoxide v0.5` 及其依赖树
+
+#### 3. 类型检查
+```powershell
+# 运行 Rust 的类型检查
+cargo check
+```
+**预期结果**：无类型错误
+
+### 手动验证
+
+由于自动化功能需要实际的 WebView2 环境和用户交互，需要用户协助手动测试：
+
+#### 测试步骤
+
+1. **启动应用**
+   ```powershell
+   # 在项目根目录运行
+   pnpm tauri dev
+   ```
+
+2. **验证 CDP 连接**
+   - 检查控制台日志，确认出现：`"Enabled WebView2 CDP on port 9222"`
+   - 确认没有 CDP 连接错误
+
+3. **测试自动化规则**（如果已有测试命令）
+   - 使用现有的 `commands::mvp_test::test_automation` 命令
+   - 或手动触发规则引擎
+
+4. **验证日志输出**
+   - 确认 `tracing` 日志正确输出
+   - 检查 CDP 操作日志（click、typing 等）
+
+> [!NOTE]
+> **建议用户提供反馈**
+> 
+> 如果您有特定的测试场景或自动化规则需要验证，请告知我以便补充测试步骤。
+
+### 验证清单
+
+- [ ] `cargo build` 成功完成
+- [ ] `cargo check` 无错误
+- [ ] 应用成功启动
+- [ ] WebView2 CDP 端口正确配置
+- [ ] 日志系统正常工作
+- [ ] CDP 连接建立成功（如果有账户登录）
+- [ ] 自动化规则触发正常（如果有测试数据）
