@@ -6,7 +6,7 @@ pub mod error;
 pub mod managers;
 pub mod state;
 
-use actuator::scheduler::FocusScheduler;
+use managers::cdp_manager::CdpManager;
 use adapters::db::init_db;
 use adapters::db::mvp_repo::MvpRepository;
 use domain::automation::RuleEngine;
@@ -27,8 +27,11 @@ pub fn run() {
                 let db_pool = init_db(db_url)
                     .await
                     .expect("Failed to initialize database");
-                let scheduler = FocusScheduler::new(app.handle().clone());
-                let cold_state = AppStore::<Cold>::new(db_pool, scheduler);
+                // Initialize CDP Manager for browser automation
+                let cdp_manager = CdpManager::new();
+                app.manage(cdp_manager);
+
+                let cold_state = AppStore::<Cold>::new(db_pool);
                 /*
                 // Workflow/bootstrap code can take AppHandle::state::<AppState>()
                 // to avoid wrapping the state in Arc. Example:

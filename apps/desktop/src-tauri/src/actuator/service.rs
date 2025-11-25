@@ -1,111 +1,81 @@
-use enigo::{Button, Coordinate, Direction, Enigo, Keyboard, Mouse, Settings};
-use serde::Deserialize;
-use tauri::{Listener, WebviewWindow};
-use tokio::{sync::oneshot, time::timeout};
-use uuid::Uuid;
+use chromiumoxide::Browser;
+use chromiumoxide::page::Page;
+use anyhow::Result;
+use std::time::Duration;
 
-#[derive(Debug, Deserialize)]
-pub struct ViewportCoords {
-    pub x: f64,
-    pub y: f64,
+/// Get the active page from the browser instance
+async fn get_active_page(browser: &Browser) -> Result<Page> {
+    let pages = browser.pages().await?;
+    pages
+        .first()
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("No active page found"))
 }
 
-/// 从 WebView 查询元素中心点的视口坐标（通过事件回传）
-pub async fn request_viewport_coordinates(
-    window: &WebviewWindow,
-    selector: &str,
-) -> Result<Option<ViewportCoords>, String> {
-    let event_name = format!("teleflow-coords-{}", Uuid::new_v4());
-    let (tx, rx) = oneshot::channel();
-    let mut sender = Some(tx);
+/// Wait for a selector with retry logic (simulates wait_for_selector)
+async fn wait_for_element(page: &Page, selector: &str, timeout_secs: u64) -> Result<chromiumoxide::element::Element> {
+    let max_attempts = (timeout_secs * 10) as usize; // Check every 100ms
+    let mut attempts = 0;
 
-    // 一次性监听坐标回传
-    window.once(event_name.clone(), move |event| {
-        if let Some(tx) = sender.take() {
-            let payload =
-                serde_json::from_str::<Option<ViewportCoords>>(event.payload()).unwrap_or(None);
-            let _ = tx.send(payload);
+    loop {
+        match page.find_element(selector).await {
+            Ok(element) => return Ok(element),
+            Err(_) if attempts < max_attempts => {
+                attempts += 1;
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!(
+                    "Element '{}' not found after {}s: {:?}",
+                    selector,
+                    timeout_secs,
+                    e
+                ))
+            }
         }
-    });
-
-    // 请求前端计算坐标并通过事件返回
-    let script = format!(
-        "(function() {{
-            const el = document.querySelector({selector:?});
-            const rect = el ? el.getBoundingClientRect() : null;
-            const payload = rect ? {{ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }} : null;
-            if (window.__TAURI__ && window.__TAURI__.event) {{
-                window.__TAURI__.event.emit({event:?}, payload);
-            }}
-        }})();",
-        selector = selector,
-        event = event_name
-    );
-
-    window
-        .eval(&script)
-        .map_err(|e| format!("JS eval error: {}", e))?;
-
-    let coords = timeout(std::time::Duration::from_millis(800), rx)
-        .await
-        .map_err(|_| "Timed out waiting for viewport coordinates".to_string())?
-        .map_err(|_| "Coordinate channel closed unexpectedly".to_string())?;
-
-    Ok(coords)
+    }
 }
 
-/// DPI 感知的屏幕坐标转换
-pub async fn get_screen_coordinates(
-    window: &WebviewWindow,
-    selector: &str,
-) -> Result<(i32, i32), String> {
-    let viewport = request_viewport_coordinates(window, selector).await?;
-    let viewport = viewport.ok_or_else(|| "Element not found".to_string())?;
-
-    let position = window
-        .outer_position()
-        .map_err(|e| format!("Window position error: {}", e))?;
-    let scale = window
-        .scale_factor()
-        .map_err(|e| format!("Scale factor error: {}", e))?;
-
-    let screen_x = position.x + (viewport.x * scale) as i32;
-    let screen_y = position.y + (viewport.y * scale) as i32;
-    Ok((screen_x, screen_y))
+/// Execute CDP click on a selector
+pub async fn execute_click(browser: &Browser, selector: &str) -> Result<()> {
+    tracing::info!("CDP: Clicking on '{}'", selector);
+    let page = get_active_page(browser).await?;
+    
+    // Wait for element to appear (5 second timeout)
+    let element = wait_for_element(&page, selector, 5).await?;
+    
+    // Scroll into view to ensure clickability
+    element.scroll_into_view().await?;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    
+    // Execute click
+    element.click().await?;
+    tracing::info!("CDP: Click successful on '{}'", selector);
+    Ok(())
 }
 
-/// 执行 OS 级点击
-pub async fn execute_click(x: i32, y: i32) {
-    let _ = tokio::task::spawn_blocking(move || {
-        if let Ok(mut enigo) = Enigo::new(&Settings::default()) {
-            let _ = enigo.move_mouse(x, y, Coordinate::Abs);
-            std::thread::sleep(std::time::Duration::from_millis(50));
-            let _ = enigo.button(Button::Left, Direction::Click);
-        }
-    })
-    .await;
+/// Execute CDP typing on a selector
+pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Result<()> {
+    tracing::info!("CDP: Typing into '{}': {}", selector, text);
+    let page = get_active_page(browser).await?;
+    
+    // Wait for element
+    let element = wait_for_element(&page, selector, 5).await?;
+    
+    // Focus the element
+    element.focus().await?;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    
+    // Type text using keyboard (generates trusted events)
+    page.keyboard().type_str(text).await?;
+    tracing::info!("CDP: Typing successful");
+    Ok(())
 }
 
-/// 执行 OS 级输入
-pub async fn execute_typing(text: &str) {
-    let text = text.to_string();
-    let _ = tokio::task::spawn_blocking(move || {
-        if let Ok(mut enigo) = Enigo::new(&Settings::default()) {
-            let _ = enigo.text(&text);
-        }
-    })
-    .await;
-}
-
-/// 坐标映射：视口坐标 -> 屏幕坐标
-pub fn map_coordinates(
-    window_x: i32,
-    window_y: i32,
-    viewport_x: f64,
-    viewport_y: f64,
-    dpi_scale: f64,
-) -> (i32, i32) {
-    let screen_x = window_x + (viewport_x * dpi_scale) as i32;
-    let screen_y = window_y + (viewport_y * dpi_scale) as i32;
-    (screen_x, screen_y)
+/// Execute CDP key press (for special keys like Enter)
+pub async fn execute_keypress(browser: &Browser, key: &str) -> Result<()> {
+    tracing::info!("CDP: Pressing key '{}'", key);
+    let page = get_active_page(browser).await?;
+    page.keyboard().press_key(key).await?;
+    Ok(())
 }
