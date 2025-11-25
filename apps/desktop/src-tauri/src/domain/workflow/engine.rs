@@ -135,13 +135,11 @@ impl WorkflowEngine {
 
         match &node.config {
             NodeConfig::SendMessage { content } => {
-                // Execute Action
-                // In a real app, we'd use the ConnectionManager to send via CDP
-                // For now, we'll just log or emit an event
+                // Execute Action via CDP
+                // TODO: Integrate with CdpManager to send message
                 println!("Workflow Sending Message to {}: {}", instance.contact_id, content);
                 
-                // TODO: Actually send message
-                // self.app_handle.state::<AppState>().connections()...
+                // TODO: Use app_handle.state::<CdpManager>() to get browser and send message
                 
                 // Auto-transition if there's an unconditional edge
                 self.auto_transition(&mut instance, node, def).await?;

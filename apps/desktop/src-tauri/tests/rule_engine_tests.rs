@@ -1,13 +1,10 @@
-use teleflow_desktop_lib::actuator::scheduler::FocusScheduler;
 use teleflow_desktop_lib::domain::models::{AutomationRule, TriggerType};
 use teleflow_desktop_lib::state::{AppStore, Cold};
 
 #[tokio::test]
 async fn automation_rule_roundtrip() {
-    let scheduler = FocusScheduler::noop();
     let state: AppStore<Cold> = AppStore::new(
-        sqlx::SqlitePool::connect_lazy("sqlite::memory:").unwrap(),
-        scheduler,
+        sqlx::SqlitePool::connect_lazy("sqlite::memory:").unwrap()
     );
 
     let ready = state.into_ready();
