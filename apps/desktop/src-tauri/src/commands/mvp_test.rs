@@ -106,6 +106,19 @@ pub async fn test_automation(
     println!("   Message: '{}'", test_message);
     println!("========================================");
 
+    // 🔄 从数据库刷新缓存，确保使用最新的规则
+    println!("🔄 Refreshing cache from database...");
+    let repo = MvpRepository::new(state.pool().clone());
+    let all_rules = match repo.get_all_rules().await {
+        Ok(rules) => rules,
+        Err(err) => {
+            println!("❌ Failed to load rules from database: {}", err);
+            return Ok("数据库读取失败".to_string());
+        }
+    };
+    state.replace_rule_cache(all_rules).await;
+    println!("✅ Cache refreshed");
+
     // ✅ 直接使用 state，不创建新的 AppState 实例
     let cached_accounts = state.cached_accounts().await;
 

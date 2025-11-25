@@ -22,16 +22,23 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            println!("=== SETUP START ===");
             tauri::async_runtime::block_on(async {
+                println!("=== ASYNC BLOCK START ===");
+                println!("=== DB INIT START ===");
                 let db_url = "sqlite://accounts.db";
                 let db_pool = init_db(db_url)
                     .await
                     .expect("Failed to initialize database");
+                println!("=== DB INIT SUCCESS ===");
                 // Initialize CDP Manager for browser automation
                 let cdp_manager = CdpManager::new();
                 app.manage(cdp_manager);
+                println!("=== CDP MANAGER CREATED ===");
 
+                println!("=== CREATING APP STORE ===");
                 let cold_state = AppStore::<Cold>::new(db_pool);
+                println!("=== APP STORE CREATED ===");
                 /*
                 // Workflow/bootstrap code can take AppHandle::state::<AppState>()
                 // to avoid wrapping the state in Arc. Example:
@@ -41,6 +48,7 @@ pub fn run() {
                  */
 
                 // Load rules into cache
+                println!("=== LOADING RULES ===");
                 let repo = MvpRepository::new(cold_state.pool().clone());
                 let rule_seed = match repo.get_all_rules().await {
                     Ok(rules) => rules,
@@ -58,8 +66,9 @@ pub fn run() {
                 let app_state = cold_state.with_rule_cache(rule_seed);
 
                 println!("Loaded {rule_total} rules into cache for {rule_accounts} account(s)");
-
+                println!("=== MANAGING APP STATE ===");
                 app.manage(app_state);
+                println!("=== APP STATE MANAGED ===");
 
                 // IPC Event Listener -> EventBus + RuleEngine
                 let handle = app.handle().clone();
@@ -163,8 +172,9 @@ pub fn run() {
                         }
                     }
                 });
+                println!("=== EVENT LISTENER REGISTERED ===");
             });
-
+            println!("=== SETUP COMPLETE ===");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

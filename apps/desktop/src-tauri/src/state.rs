@@ -47,9 +47,11 @@ impl AppStore<Cold> {
     pub fn with_rule_cache(self, rules: Vec<AutomationRule>) -> AppStore<Ready> {
         let mut cache: HashMap<String, Vec<AutomationRule>> = HashMap::new();
         for rule in rules {
-            if let Some(account_id) = &rule.account_id {
-                cache.entry(account_id.clone()).or_default().push(rule);
-            }
+            let key = rule
+                .account_id
+                .clone()
+                .unwrap_or_else(|| GLOBAL_ACCOUNT_ID.to_string());
+            cache.entry(key).or_default().push(rule);
         }
 
         AppStore {
@@ -71,26 +73,38 @@ impl AppStore<Ready> {
         cache.clear();
 
         for rule in rules {
-            if let Some(account_id) = &rule.account_id {
-                cache.entry(account_id.clone()).or_default().push(rule);
-            }
+            let key = rule
+                .account_id
+                .clone()
+                .unwrap_or_else(|| GLOBAL_ACCOUNT_ID.to_string());
+            cache.entry(key).or_default().push(rule);
         }
     }
 
     pub async fn add_rule(&self, rule: AutomationRule) -> Option<usize> {
-        if let Some(account_id) = &rule.account_id {
-            let mut cache = self.rule_cache.write().await;
-            let rules = cache.entry(account_id.clone()).or_default();
-            rules.push(rule);
-            return Some(rules.len());
-        }
-
-        None
+        let account_id = rule
+            .account_id
+            .clone()
+            .unwrap_or_else(|| GLOBAL_ACCOUNT_ID.to_string());
+        let mut cache = self.rule_cache.write().await;
+        let rules = cache.entry(account_id.clone()).or_default();
+        rules.push(rule);
+        Some(rules.len())
     }
 
     pub async fn rules_for_account(&self, account_id: &str) -> Vec<AutomationRule> {
         let cache = self.rule_cache.read().await;
-        cache.get(account_id).cloned().unwrap_or_default()
+        let mut combined = Vec::new();
+
+        if let Some(global_rules) = cache.get(GLOBAL_ACCOUNT_ID) {
+            combined.extend(global_rules.clone());
+        }
+
+        if let Some(account_rules) = cache.get(account_id) {
+            combined.extend(account_rules.clone());
+        }
+
+        combined
     }
 
     pub async fn cached_accounts(&self) -> Vec<String> {
@@ -98,3 +112,4 @@ impl AppStore<Ready> {
         cache.keys().cloned().collect()
     }
 }
+const GLOBAL_ACCOUNT_ID: &str = "__global__";
