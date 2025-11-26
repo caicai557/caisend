@@ -3,40 +3,38 @@ mod tests {
     use crate::domain::workflow::{
         engine::WorkflowEngine,
         models::{WorkflowInstance, WorkflowStatus},
-        schema::{WorkflowDefinition, Node, Edge, NodeType, Condition, MatchType},
+        schema::{WorkflowDefinition, WorkflowNode, WorkflowEdge, Condition, MatchType},
         evaluator,
     };
     use sqlx::sqlite::SqlitePoolOptions;
     use std::collections::HashMap;
-    use tauri::{AppHandle, Manager, Wry};
-    use std::sync::Arc;
 
     // Helper to create a test workflow definition
     fn create_test_workflow() -> WorkflowDefinition {
         let mut nodes = HashMap::new();
-        nodes.insert("N1".to_string(), Node {
+        nodes.insert("N1".to_string(), WorkflowNode {
             id: "N1".to_string(),
-            node_type: NodeType::SendMessage,
-            config: serde_json::json!({ "text": "Welcome" }).as_object().unwrap().clone(),
+            node_type: "SendMessage".to_string(),
+            config: serde_json::json!({ "text": "Welcome" }),
         });
-        nodes.insert("N2".to_string(), Node {
+        nodes.insert("N2".to_string(), WorkflowNode {
             id: "N2".to_string(),
-            node_type: NodeType::WaitForReply,
-            config: HashMap::new(),
+            node_type: "WaitForReply".to_string(),
+            config: serde_json::json!({}),
         });
-        nodes.insert("N3".to_string(), Node {
+        nodes.insert("N3".to_string(), WorkflowNode {
             id: "N3".to_string(),
-            node_type: NodeType::SendMessage,
-            config: serde_json::json!({ "text": "Success" }).as_object().unwrap().clone(),
+            node_type: "SendMessage".to_string(),
+            config: serde_json::json!({ "text": "Success" }),
         });
 
         let edges = vec![
-            Edge {
+            WorkflowEdge {
                 source_node_id: "N1".to_string(),
                 target_node_id: "N2".to_string(),
                 condition: None,
             },
-            Edge {
+            WorkflowEdge {
                 source_node_id: "N2".to_string(),
                 target_node_id: "N3".to_string(),
                 condition: Some(Condition {
@@ -48,6 +46,8 @@ mod tests {
 
         WorkflowDefinition {
             id: "TEST_FLOW".to_string(),
+            name: "Test Flow".to_string(),
+            description: "Test Description".to_string(),
             nodes,
             edges,
         }
@@ -59,21 +59,21 @@ mod tests {
             match_type: MatchType::Keyword,
             pattern: Some("hello".to_string()),
         };
-        assert!(evaluator::evaluate_condition("hello world", &condition_keyword).unwrap());
-        assert!(!evaluator::evaluate_condition("hi world", &condition_keyword).unwrap());
+        assert!(evaluator::evaluate_condition("hello world", &condition_keyword, None, None).await.unwrap());
+        assert!(!evaluator::evaluate_condition("hi world", &condition_keyword, None, None).await.unwrap());
 
         let condition_regex = Condition {
             match_type: MatchType::Regex,
             pattern: Some(r"^\d+$".to_string()),
         };
-        assert!(evaluator::evaluate_condition("123", &condition_regex).unwrap());
-        assert!(!evaluator::evaluate_condition("123a", &condition_regex).unwrap());
+        assert!(evaluator::evaluate_condition("123", &condition_regex, None, None).await.unwrap());
+        assert!(!evaluator::evaluate_condition("123a", &condition_regex, None, None).await.unwrap());
         
         let condition_fallback = Condition {
             match_type: MatchType::Fallback,
             pattern: None,
         };
-        assert!(evaluator::evaluate_condition("anything", &condition_fallback).unwrap());
+        assert!(evaluator::evaluate_condition("anything", &condition_fallback, None, None).await.unwrap());
     }
 
     // Note: Full integration test with DB and WorkflowEngine requires mocking AppHandle/CdpManager
@@ -136,11 +136,13 @@ mod tests {
             .execute(&pool).await.unwrap();
 
         // 4. Verify DB State
-        let instance: WorkflowInstance = sqlx::query_as("SELECT * FROM workflow_instances WHERE id = 'INST_1'")
-            .fetch_one(&pool).await.unwrap();
+        let (current_step_id, status): (String, String) = sqlx::query_as(
+            "SELECT current_step_id, status FROM workflow_instances WHERE id = 'INST_1'"
+        )
+        .fetch_one(&pool).await.unwrap();
         
-        assert_eq!(instance.current_step_id, "N2");
-        assert_eq!(instance.status, WorkflowStatus::Running);
+        assert_eq!(current_step_id, "N2");
+        assert_eq!(status, "Running");
         
         // Note: We cannot easily call WorkflowEngine::process_message here because it requires AppHandle.
         // However, we have verified the DB schema and Model mapping works.

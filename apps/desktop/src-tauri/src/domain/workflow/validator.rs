@@ -1,11 +1,11 @@
 use anyhow::{Result, bail};
-use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::algo::{is_cyclic_directed, has_path_connecting};
+use petgraph::graph::DiGraph;
+use petgraph::algo::is_cyclic_directed;
 use petgraph::visit::Dfs;
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
-use crate::domain::workflow::schema::{WorkflowDefinition, WorkflowNode, WorkflowEdge};
+use crate::domain::workflow::schema::WorkflowDefinition;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationReport {

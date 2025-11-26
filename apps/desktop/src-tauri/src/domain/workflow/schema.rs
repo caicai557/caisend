@@ -41,18 +41,19 @@ pub struct WorkflowEdge {
 }
 
 // 判断条件 (核心逻辑)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Condition {
     pub match_type: MatchType,
     pub pattern: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum MatchType {
     Keyword,    // 关键词包含
     Regex,      // 正则表达式
     Semantic,   // 语义匹配 (向量相似度)
     Timeout,    // 超时 (需要引擎支持时间触发器)
+    #[default]
     Fallback,   // 兜底 (如果其他条件都不满足)
 }
 
