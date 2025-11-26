@@ -11,6 +11,8 @@ pub mod ai; // Phase 4: Cognition
 use adapters::browser::cdp_adapter::CdpManager;
 use adapters::db::init_db;
 use adapters::db::mvp_repo::MvpRepository;
+use adapters::db::SqliteScriptRepository;  // 幽灵座舱
+use infrastructure::ContextHub;  // 幽灵座舱中枢
 use anyhow::Context;
 use domain::automation::RuleEngine;
 use domain::events::AppEvent;
@@ -59,7 +61,7 @@ pub fn run() -> anyhow::Result<()> {
                 println!("=== CDP MANAGER CREATED ===");
 
                 println!("=== CREATING APP STORE ===");
-                let cold_state = AppStore::<Cold>::new(db_pool);
+                let cold_state = AppStore::<Cold>::new(db_pool.clone());
                 println!("=== APP STORE CREATED ===");
                 /*
                 // Workflow/bootstrap code can take AppHandle::state::<AppState>()
@@ -91,6 +93,17 @@ pub fn run() -> anyhow::Result<()> {
                 println!("=== MANAGING APP STATE ===");
                 app.manage(app_state);
                 println!("=== APP STATE MANAGED ===");
+                
+                // ========== 🎯 幽灵座舱初始化  ==========
+                println!("=== INITIALIZING GHOST COCKPIT ===");
+                let script_repo = Arc::new(SqliteScriptRepository::new(db_pool.clone()));
+                let context_hub = Arc::new(ContextHub::new(
+                    app.handle().clone(),
+                    script_repo.clone(),
+                ));
+                app.manage(script_repo);
+                app.manage(context_hub);
+                println!("=== GHOST COCKPIT READY ===");
 
                 // IPC Event Listener -> EventBus + RuleEngine
                 let handle = app.handle().clone();
@@ -215,6 +228,16 @@ pub fn run() -> anyhow::Result<()> {
             commands::workflow::load_workflows,
             commands::workflow::delete_workflow,
             commands::workflow::toggle_workflow_active,
+            // 🎯【幽灵座舱】Commands
+            commands::script::toggle_account_autoreply,
+            commands::script::execute_and_advance_workflow,
+            commands::script::get_account_flows,
+            commands::script::notify_window_focus,
+            commands::script::notify_peer_focus,
+            // 🎯【演示命令】Ghost Cockpit Demo
+            commands::ghost_demo::ghost_cockpit_demo,
+            commands::ghost_demo::list_all_flows,
+            commands::ghost_demo::reset_demo_instance,
         ])
         .run(tauri::generate_context!())
         .context("Error while running Tauri application")?;

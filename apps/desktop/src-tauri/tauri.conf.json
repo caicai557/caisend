@@ -36,6 +36,21 @@
                 "height": 600,
                 "resizable": true,
                 "fullscreen": false
+            },
+            {
+                "label": "hud_overlay",
+                "title": "Ghost Cockpit",
+                "url": "/cockpit",
+                "width": 350,
+                "height": 600,
+                "transparent": true,
+                "decorations": false,
+                "alwaysOnTop": true,
+                "resizable": false,
+                "skipTaskbar": true,
+                "visible": false,
+                "x": 0,
+                "y": 100
             }
         ],
         "security": {

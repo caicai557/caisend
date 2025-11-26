@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tauri::{AppHandle, Manager};  // Manager trait needed for emit()
+use tauri::{AppHandle, Emitter};  // Emitter trait for emit()
 use serde::{Serialize, Deserialize};
 use crate::domain::ports::ScriptRepositoryPort;
 use crate::domain::workflow::{ScriptFlow};
@@ -12,6 +12,15 @@ struct ActiveContext {
     peer_id: Option<String>,
 }
 
+/// 查询结果缓存（性能优化）
+#[derive(Debug, Clone)]
+struct QueryCache {
+    config: Option<AccountConfig>,
+    flow: Option<ScriptFlow>,
+    last_account_id: Option<String>,
+    last_flow_id: Option<String>,
+}
+
 /// 上下文中枢 - 幽灵座舱的大脑
 /// 
 /// 职责：
@@ -20,6 +29,7 @@ struct ActiveContext {
 /// 3. 状态感知：查询PFSM状态并广播给HUD
 pub struct ContextHub {
     context: Arc<RwLock<ActiveContext>>,
+    cache: Arc<RwLock<Option<QueryCache>>>,
     script_repo: Arc<dyn ScriptRepositoryPort>,
     app_handle: AppHandle,
 }
@@ -31,6 +41,7 @@ impl ContextHub {
     ) -> Self {
         Self {
             context: Arc::new(RwLock::new(ActiveContext::default())),
+            cache: Arc::new(RwLock::new(None)),
             script_repo,
             app_handle,
         }
@@ -69,66 +80,172 @@ impl ContextHub {
     pub async fn broadcast_update(&self) {
         let start = std::time::Instant::now();
         
-        let ctx = self.context.read().await;
-        
-        let (account_id, peer_id) = match (&ctx.account_id, &ctx.peer_id) {
-            (Some(a), Some(p)) => (a.clone(), p.clone()),
-            _ => {
+        // 1. 获取上下文
+        let (account_id, peer_id) = match self.get_context().await {
+            Some(ctx) => ctx,
+            None => {
                 tracing::debug!("[ContextHub] Incomplete context, skipping broadcast");
-                return; // 上下文不完整,不广播
+                return;
             }
         };
-        drop(ctx);
         
-        // 1. 查询账号配置
+        // 2. 查询数据（带缓存优化）
+        let config = self.query_account_config(&account_id).await;
+        let instance = self.query_instance(&account_id, &peer_id).await;
+        let flow = self.query_flow(&account_id, &instance).await;
+        
+        // 3. 组装Payload
+        let payload = self.build_payload(
+            &account_id,
+            &peer_id,
+            config,
+            instance.as_ref(),
+            flow,
+        );
+        
+        // 4. 广播到前端
+        self.emit_update(payload, start.elapsed()).await;
+    }
+    
+    /// 获取当前上下文（避免重复读锁）
+    async fn get_context(&self) -> Option<(String, String)> {
+        let ctx = self.context.read().await;
+        match (&ctx.account_id, &ctx.peer_id) {
+            (Some(a), Some(p)) => Some((a.clone(), p.clone())),
+            _ => None,
+        }
+    }
+    
+    /// 查询账号配置（带缓存）
+    async fn query_account_config(&self, account_id: &str) -> Option<AccountConfig> {
+        // 检查缓存
+        let cache = self.cache.read().await;
+        if let Some(ref c) = *cache {
+            if c.last_account_id.as_deref() == Some(account_id) {
+                if let Some(ref config) = c.config {
+                    tracing::debug!("[ContextHub] Cache hit: account_config");
+                    return Some(config.clone());
+                }
+            }
+        }
+        drop(cache);
+        
+        // 查询数据库
         let config = self.script_repo
-            .get_account_config(&account_id)
+            .get_account_config(account_id)
             .await
             .ok()
             .flatten();
         
-        // 2. 查询运行时实例
-        let instance = self.script_repo
-            .get_instance(&account_id, &peer_id)
+        // 更新缓存
+        if let Some(ref cfg) = config {
+            let mut cache = self.cache.write().await;
+            if let Some(ref mut c) = *cache {
+                c.config = Some(cfg.clone());
+                c.last_account_id = Some(account_id.to_string());
+            } else {
+                *cache = Some(QueryCache {
+                    config: Some(cfg.clone()),
+                    flow: None,
+                    last_account_id: Some(account_id.to_string()),
+                    last_flow_id: None,
+                });
+            }
+        }
+        
+        config
+    }
+    
+    /// 查询运行实例
+    async fn query_instance(
+        &self,
+        account_id: &str,
+        peer_id: &str,
+    ) -> Option<ScriptInstance> {
+        self.script_repo
+            .get_instance(account_id, peer_id)
             .await
             .ok()
-            .flatten();
+            .flatten()
+    }
+    
+    /// 查询话术流程（带缓存）
+    async fn query_flow(
+        &self,
+        account_id: &str,
+        instance: &Option<ScriptInstance>,
+    ) -> Option<ScriptFlow> {
+        let flow_id = instance.as_ref()?.flow_id.clone();
         
-        // 3. 查询话术流程
-        let flow = if let Some(inst) = &instance {
-            self.script_repo
-                .get_flows_by_account(&account_id)
-                .await
-                .ok()
-                .and_then(|flows| {
-                    flows.into_iter()
-                        .find(|f| f.id == inst.flow_id)
-                })
+        // 检查缓存
+        let cache = self.cache.read().await;
+        if let Some(ref c) = *cache {
+            if c.last_flow_id.as_deref() == Some(&flow_id) {
+                if let Some(ref flow) = c.flow {
+                    tracing::debug!("[ContextHub] Cache hit: flow");
+                    return Some(flow.clone());
+                }
+            }
+        }
+        drop(cache);
+        
+        // 查询数据库
+        let flows = self.script_repo
+            .get_flows_by_account(account_id)
+            .await
+            .ok()?;
+        
+        let flow = flows.into_iter().find(|f| f.id == flow_id)?;
+        
+        // 更新缓存
+        let mut cache = self.cache.write().await;
+        if let Some(ref mut c) = *cache {
+            c.flow = Some(flow.clone());
+            c.last_flow_id = Some(flow_id);
         } else {
-            None
-        };
+            *cache = Some(QueryCache {
+                config: None,
+                flow: Some(flow.clone()),
+                last_account_id: None,
+                last_flow_id: Some(flow_id),
+            });
+        }
         
-        // 4. 组装Payload
-        let payload = HudUpdatePayload {
-            account_id: account_id.clone(),
-            peer_id: peer_id.clone(),
-            flow: flow.clone(),
-            current_step_id: instance.as_ref().and_then(|i| {
-                flow.as_ref()
-                    .and_then(|f| f.steps.get(i.current_step_index))
-                    .map(|s| s.id.clone())
-            }),
+        Some(flow)
+    }
+    
+    /// 组装HUD更新载荷
+    fn build_payload(
+        &self,
+        account_id: &str,
+        peer_id: &str,
+        config: Option<AccountConfig>,
+        instance: Option<&ScriptInstance>,
+        flow: Option<ScriptFlow>,
+    ) -> HudUpdatePayload {
+        let current_step_id = instance.and_then(|i| {
+            flow.as_ref()
+                .and_then(|f| f.steps.get(i.current_step_index))
+                .map(|s| s.id.clone())
+        });
+        
+        HudUpdatePayload {
+            account_id: account_id.to_string(),
+            peer_id: peer_id.to_string(),
+            flow,
+            current_step_id,
             is_autoreply_enabled: config
                 .as_ref()
                 .map(|c| c.autoreply_enabled)
                 .unwrap_or(false),
-        };
-        
-        // 5. 广播到前端
-        let elapsed = start.elapsed();
+        }
+    }
+    
+    /// 发送事件到前端
+    async fn emit_update(&self, payload: HudUpdatePayload, elapsed: std::time::Duration) {
         tracing::info!(
             "[ContextHub] Broadcasting update: account={}, peer={}, latency={}ms",
-            account_id, peer_id, elapsed.as_millis()
+            payload.account_id, payload.peer_id, elapsed.as_millis()
         );
         
         if elapsed.as_millis() > 150 {
@@ -138,12 +255,22 @@ impl ContextHub {
             );
         }
         
-        let _ = self.app_handle.emit("teleflow/hud-update", payload);
+        if let Err(e) = self.app_handle.emit("teleflow/hud-update", &payload) {
+            tracing::error!("[ContextHub] Failed to emit event: {}", e);
+        }
     }
     
     /// 手动触发广播（用于配置变更后）
     pub async fn notify_config_changed(&self) {
+        // 清除缓存以确保获取最新数据
+        *self.cache.write().await = None;
         self.broadcast_update().await;
+    }
+    
+    /// 清除缓存（用于数据更新后）
+    pub async fn clear_cache(&self) {
+        *self.cache.write().await = None;
+        tracing::debug!("[ContextHub] Cache cleared");
     }
 }
 
