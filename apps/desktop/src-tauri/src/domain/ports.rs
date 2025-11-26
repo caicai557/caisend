@@ -26,3 +26,7 @@ pub trait WorkflowEnginePort: Send + Sync {
 pub trait RuleEnginePort: Send + Sync {
     async fn evaluate_message(&self, content: &str, account_id: &str) -> Option<crate::domain::models::AutomationRule>;
 }
+
+// 幽灵座舱：脚本仓库端口
+pub mod script_repository;
+pub use script_repository::ScriptRepositoryPort;

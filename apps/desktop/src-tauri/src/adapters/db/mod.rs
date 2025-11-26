@@ -4,13 +4,17 @@ use std::str::FromStr;
 
 pub mod mvp_repo;
 pub mod workflow_repo;
+pub mod script_repository;  // 幽灵座舱
+
+pub use mvp_repo::MvpRepository;
+pub use script_repository::SqliteScriptRepository;
 
 pub async fn init_db(database_url: &str) -> Result<SqlitePool, CoreError> {
     let mut options = SqliteConnectOptions::from_str(database_url)?
         .create_if_missing(true)
         .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal); // Enable WAL for concurrency
 
-    options = options.log_statements(log::LevelFilter::Debug);
+    options = options.log_statements(log:: LevelFilter::Debug);
 
     let pool = SqlitePool::connect_with(options).await?;
 

@@ -7,8 +7,12 @@ pub mod tracker;
 pub mod engine;
 pub mod scheduler;
 pub mod models;
+pub mod script;  // 新增：线性脚本DSL
 
 pub mod engine_tests;
+
+// 公开导出核心类型
+pub use script::{ScriptFlow, ScriptStep, ScriptInstance, AdvanceMode, AccountConfig};
 
 #[cfg(test)]
 pub mod tests;
