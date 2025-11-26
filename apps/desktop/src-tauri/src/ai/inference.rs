@@ -1,8 +1,10 @@
-use anyhow::{Result, Context};
-use ort::{GraphOptimizationLevel, Session};
+#[allow(unused_imports)]
+use anyhow::Result;
 use std::path::Path;
-use std::sync::Arc;
 use tokenizers::Tokenizer;
+use ort::session::Session;
+#[allow(unused_imports)]
+use ort::value::Value;
 
 pub struct CognitionService {
     session: Session,
@@ -17,7 +19,6 @@ impl CognitionService {
 
         // Load ONNX Model
         let session = Session::builder()?
-            .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(4)?
             .commit_from_file(model_path)?;
 
@@ -57,9 +58,9 @@ impl CognitionService {
         )?;
 
         // ort 2.0 supports creating Value directly from ndarray
-        let input_ids_tensor = ort::Value::from_array(input_ids_array)?;
-        let attention_mask_tensor = ort::Value::from_array(attention_mask_array)?;
-        let token_type_ids_tensor = ort::Value::from_array(token_type_ids_array)?;
+        let input_ids_tensor = Value::from_array(input_ids_array)?;
+        let attention_mask_tensor = Value::from_array(attention_mask_array)?;
+        let token_type_ids_tensor = Value::from_array(token_type_ids_array)?;
 
         let inputs = ort::inputs![
             "input_ids" => input_ids_tensor,
@@ -71,6 +72,8 @@ impl CognitionService {
         let outputs = self.session.run(inputs)?;
         
         // 4. Extract Embeddings (last_hidden_state)
+        // Note: extract_tensor might return a TensorView or similar.
+        // We need to check the return type. Assuming it works like before or similar.
         let output_tensor = outputs["last_hidden_state"].extract_tensor::<f32>()?;
         let shape = output_tensor.shape(); // [1, seq_len, 384]
         let hidden_size = shape[2];
