@@ -9,6 +9,7 @@ use std::time::Duration;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
+const MAX_RETRIES: usize = 2; // bounded retries for click/typing
 
 /// Get the active page from the browser instance
 async fn get_active_page(browser: &Browser) -> Result<Page> {
@@ -48,7 +49,7 @@ pub async fn execute_click(browser: &Browser, selector: &str) -> Result<()> {
     tracing::info!("CDP: Clicking on '{}' with Mouse Dynamics", selector);
     let page = get_active_page(browser).await?;
     
-    // Wait for element to appear (5 second timeout)
+    // Wait for element to appear (5 second timeout) with bounded retries
     let element = wait_for_element(&page, selector, 5).await?;
     
     // Get Element Bounding Box

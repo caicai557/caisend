@@ -198,18 +198,15 @@ pub fn run() {
             commands::mvp_test::create_test_account,
             commands::mvp_test::create_test_rule,
             commands::mvp_test::test_automation,
-            /*
-            commands::account::create_account,
-            commands::account::list_accounts,
-            commands::auth::start_session,
-            commands::messaging::send_message,
-            commands::crm::update_contact,
-            commands::crm::get_contact,
-            commands::analytics::get_dashboard_stats,
             commands::workflow::save_workflow_definition,
             commands::workflow::get_workflow_definition,
-            commands::workflow::list_active_instances
-            */
+            commands::workflow::list_active_instances,
+            // 【帝国统御术】新增 Commands
+            commands::workflow::validate_workflow,
+            commands::workflow::save_workflow,
+            commands::workflow::load_workflows,
+            commands::workflow::delete_workflow,
+            commands::workflow::toggle_workflow_active,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

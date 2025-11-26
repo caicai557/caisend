@@ -1,182 +1,152 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState, useCallback } from 'react'
-import ReactFlow, {
-    Controls,
-    Background,
-    useNodesState,
-    useEdgesState,
-    addEdge,
-    Connection,
-    Node,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
-import { ipcSaveWorkflowDefinition } from '@/lib/ipc'
-import { WorkflowDefinition } from '@/lib/schemas'
-import { v4 as uuidv4 } from 'uuid'
+import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
+import { Save, PlayCircle, FolderOpen } from 'lucide-react';
+import { WorkflowEditor } from '@/components/workflow/WorkflowEditor';
+import { useWorkflowStore } from '@/stores/workflowStore';
+import { compileWorkflow, decompileWorkflow } from '@/lib/workflow-compiler';
+import { workflowApi } from '@/lib/tauri-api';
 
 export const Route = createFileRoute('/workflows/editor' as any)({
-    component: WorkflowEditor,
-})
+    component: WorkflowEditorPage,
+});
 
-const initialNodes: Node[] = [
-    {
-        id: 'start',
-        type: 'input', // ReactFlow default type, we map to our 'Start'
-        data: { label: 'Start' },
-        position: { x: 250, y: 5 },
-    },
-]
-
-function WorkflowEditor() {
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-    const [edges, setEdges, onEdgesChange] = useEdgesState([])
-    const [workflowName, setWorkflowName] = useState("New Workflow")
-    const [isSaving, setIsSaving] = useState(false)
-
-    const onConnect = useCallback(
-        (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-        [setEdges],
-    )
-
-    const onDragOver = useCallback((event: React.DragEvent) => {
-        event.preventDefault()
-        event.dataTransfer.dropEffect = 'move'
-    }, [])
-
-    const onDrop = useCallback(
-        (event: React.DragEvent) => {
-            event.preventDefault()
-
-            const type = event.dataTransfer.getData('application/reactflow')
-
-            // check if the dropped element is valid
-            if (typeof type === 'undefined' || !type) {
-                return
-            }
-
-            const position = {
-                x: event.clientX - 200, // approximate offset
-                y: event.clientY - 100,
-            }
-
-            const newNode: Node = {
-                id: uuidv4(),
-                type: 'default', // We use default for now and store type in data
-                position,
-                data: { label: `${type} Node`, nodeType: type },
-            }
-
-            setNodes((nds) => nds.concat(newNode))
-        },
-        [setNodes],
-    )
+function WorkflowEditorPage() {
+    const { nodes, edges } = useWorkflowStore();
+    const [workflowName, setWorkflowName] = useState('新工作流');
+    const [workflowDescription, setWorkflowDescription] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
 
     const handleSave = async () => {
-        setIsSaving(true)
+        setIsSaving(true);
         try {
-            // Convert ReactFlow nodes/edges to our Schema
-            // This is a simplified mapping. In a real app, we'd have custom node types.
-            const definition: WorkflowDefinition = {
-                id: uuidv4(), // Or existing ID
+            // 1. 编译为 JSON DSL
+            const compiled = compileWorkflow(nodes, edges, {
                 name: workflowName,
-                version: "1.0.0",
-                nodes: nodes.reduce((acc, node) => {
-                    acc[node.id] = {
-                        id: node.id,
-                        type: (node.data.nodeType as any) || "Start", // Default fallback
-                        position: node.position,
-                        config: {
-                            type: (node.data.nodeType as any) || "Start",
-                            data: {}
-                        }
-                    }
-                    return acc
-                }, {} as Record<string, any>),
-                edges: edges.map(edge => ({
-                    id: edge.id,
-                    source: edge.source,
-                    target: edge.target,
-                    condition: null
-                })),
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
+                description: workflowDescription,
+            });
+
+            // 2. 验证
+            const report = await workflowApi.validate(compiled);
+            if (report.errors.length > 0) {
+                alert(`验证失败:\n${report.errors.join('\n')}`);
+                return;
             }
 
-            await ipcSaveWorkflowDefinition(definition)
-            alert("Workflow saved!")
-        } catch (e) {
-            console.error(e)
-            alert("Failed to save workflow")
+            // 3. 保存
+            await workflowApi.save(compiled);
+            alert('工作流保存成功！');
+        } catch (error: any) {
+            console.error('保存失败:', error);
+            alert(`保存失败: ${error.message || error}`);
         } finally {
-            setIsSaving(false)
+            setIsSaving(false);
         }
-    }
+    };
+
+    const handleValidate = async () => {
+        setIsValidating(true);
+        try {
+            const compiled = compileWorkflow(nodes, edges, {
+                name: workflowName,
+                description: workflowDescription,
+            });
+
+            const report = await workflowApi.validate(compiled);
+
+            if (report.errors.length === 0 && report.warnings.length === 0) {
+                alert('✅ 验证通过！工作流逻辑正确。');
+            } else {
+                const message = [
+                    report.errors.length > 0 ? `❌ 错误 (${report.errors.length}):\n${report.errors.join('\n')}` : '',
+                    report.warnings.length > 0 ? `⚠️ 警告 (${report.warnings.length}):\n${report.warnings.join('\n')}` : '',
+                ].filter(Boolean).join('\n\n');
+                alert(message);
+            }
+        } catch (error: any) {
+            console.error('验证失败:', error);
+            alert(`验证失败: ${error.message || error}`);
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    const handleLoad = async () => {
+        try {
+            const workflows = await workflowApi.loadAll();
+            if (workflows.length === 0) {
+                alert('暂无已保存的工作流');
+                return;
+            }
+
+            // 简单演示：加载第一个工作流
+            // 实际应用中应该显示列表让用户选择
+            const firstWorkflow = workflows[0];
+            if (!firstWorkflow) {
+                alert('工作流数据无效');
+                return;
+            }
+
+            const { nodes: loadedNodes, edges: loadedEdges } = decompileWorkflow(firstWorkflow);
+
+            useWorkflowStore.getState().setNodes(loadedNodes);
+            useWorkflowStore.getState().setEdges(loadedEdges);
+            setWorkflowName(firstWorkflow.name);
+            setWorkflowDescription(firstWorkflow.description);
+
+            alert(`已加载工作流: ${firstWorkflow.name}`);
+        } catch (error: any) {
+            console.error('加载失败:', error);
+            alert(`加载失败: ${error.message || error}`);
+        }
+    };
 
     return (
-        <div className="h-screen flex flex-col">
-            <div className="h-14 border-b flex items-center px-4 justify-between bg-background">
+        <div className="h-screen flex flex-col bg-gray-100">
+            {/* 顶部工具栏 */}
+            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
-                    <h1 className="font-bold">Workflow Editor</h1>
+                    <h1 className="text-xl font-bold text-gray-800">尚书省 - 工作流编辑器</h1>
                     <input
+                        type="text"
                         value={workflowName}
-                        onChange={e => setWorkflowName(e.target.value)}
-                        className="border rounded px-2 py-1 text-sm"
+                        onChange={(e) => setWorkflowName(e.target.value)}
+                        placeholder="工作流名称"
+                        className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleLoad}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                    >
+                        <FolderOpen className="w-4 h-4" />
+                        加载
+                    </button>
+
+                    <button
+                        onClick={handleValidate}
+                        disabled={isValidating}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors disabled:opacity-50"
+                    >
+                        <PlayCircle className="w-4 h-4" />
+                        {isValidating ? '验证中...' : '验证'}
+                    </button>
+
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="bg-primary text-primary-foreground px-4 py-2 rounded text-sm hover:bg-primary/90"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
                     >
-                        {isSaving ? 'Saving...' : 'Save Workflow'}
+                        <Save className="w-4 h-4" />
+                        {isSaving ? '保存中...' : '保存'}
                     </button>
                 </div>
             </div>
-            <div className="flex-1 flex">
-                <Sidebar />
-                <div className="flex-1 h-full" onDragOver={onDragOver} onDrop={onDrop}>
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        fitView
-                    >
-                        <Background />
-                        <Controls />
-                    </ReactFlow>
-                </div>
-            </div>
+
+            {/* 工作流编辑器 */}
+            <WorkflowEditor />
         </div>
-    )
-}
-
-function Sidebar() {
-    const onDragStart = (event: React.DragEvent, nodeType: string) => {
-        event.dataTransfer.setData('application/reactflow', nodeType)
-        event.dataTransfer.effectAllowed = 'move'
-    }
-
-    return (
-        <aside className="w-64 border-r bg-muted/10 p-4 flex flex-col gap-2">
-            <div className="font-semibold mb-2">Nodes</div>
-            <div className="p-2 border rounded bg-background cursor-move hover:border-primary" onDragStart={(event) => onDragStart(event, 'SendMessage')} draggable>
-                Send Message
-            </div>
-            <div className="p-2 border rounded bg-background cursor-move hover:border-primary" onDragStart={(event) => onDragStart(event, 'WaitForResponse')} draggable>
-                Wait For Response
-            </div>
-            <div className="p-2 border rounded bg-background cursor-move hover:border-primary" onDragStart={(event) => onDragStart(event, 'ConditionalBranch')} draggable>
-                Conditional Branch
-            </div>
-            <div className="p-2 border rounded bg-background cursor-move hover:border-primary" onDragStart={(event) => onDragStart(event, 'AddTag')} draggable>
-                Add Tag
-            </div>
-            <div className="p-2 border rounded bg-background cursor-move hover:border-primary" onDragStart={(event) => onDragStart(event, 'End')} draggable>
-                End
-            </div>
-        </aside>
-    )
+    );
 }
