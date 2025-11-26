@@ -105,14 +105,41 @@ impl CdpManager {
             .with_context(|| format!("Failed to connect to DevTools websocket {}", ws_url))?;
         let browser = Arc::new(browser);
 
-        // Spawn handler event loop (required to keep connection alive)
+        // 🧠 Phase 2.1: Add Runtime Binding for Direct JS → Rust Communication
+        let binding_name = "teleflowNotify".to_string();
+        tracing::info!("[CDP Binding] Adding {} binding for account {}", binding_name, account_id);
+        
+        // Add binding to all pages (new and existing)
+        if let Err(e) = browser
+            .execute(chromiumoxide::cdp::browser_protocol::runtime::AddBindingParams::new(
+                binding_name.clone(),
+            ))
+            .await
+        {
+            tracing::error!("[CDP Binding] Failed to add binding: {:?}", e);
+        }
+
+        // Spawn handler event loop with binding event processing
         let account_clone = account_id.clone();
         let browser_map = self.browsers.clone();
         tokio::spawn(async move {
-            while let Some(h) = handler.next().await {
-                if let Err(e) = h {
-                    tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
-                    break;
+            while let Some(event_result) = handler.next().await {
+                match event_result {
+                    Ok(event) => {
+                        // Check if this is a BindingCalled event
+                        use chromiumoxide::cdp::browser_protocol::runtime::EventBindingCalled;
+                        
+                        if let Some(binding) = EventBindingCalled::from_event(&event) {
+                            if binding.name == binding_name {
+                                // 🚀 Direct Link Activated!
+                                Self::handle_notification(&account_clone, &binding.payload);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
+                        break;
+                    }
                 }
             }
             tracing::info!("CDP Handler finished for {}", account_clone);
@@ -126,6 +153,80 @@ impl CdpManager {
             .insert(account_id.clone(), browser);
         tracing::info!("CDP connection established for {}", account_id);
         Ok(())
+    }
+
+    /// 🚀 Phase 2.1 + 3.4: Handle direct notification with Priority Scheduling
+    /// Priority: WorkflowEngine > RuleEngine
+    fn handle_notification(account_id: &str, payload: &str) {
+        tracing::info!("[Direct Link] Account {}: {}", account_id, payload);
+        
+        // Parse JSON payload
+        #[derive(serde::Deserialize, Debug)]
+        struct NotificationPayload {
+            #[serde(rename = "eventType")]
+            event_type: String,
+            #[serde(default)]
+            payload: serde_json::Value,
+        }
+
+        let account_id_owned = account_id.to_string();
+        let payload_owned = payload.to_string();
+
+        // Spawn async task for processing (cannot await in sync context)
+        tauri::async_runtime::spawn(async move {
+            match serde_json::from_str::<NotificationPayload>(&payload_owned) {
+                Ok(notification) => {
+                    tracing::info!(
+                        "[Direct Link] Parsed event: type={}, payload={:?}",
+                        notification.event_type,
+                        notification.payload
+                    );
+                    
+                    // 🎯 Phase 3.4: Priority Scheduling
+                    if notification.event_type == "NewMessage" {
+                        let content = notification.payload
+                            .get("content")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        
+                        let contact_id = notification.payload
+                            .get("chat_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+
+                        // TODO: Get WorkflowEngine and RuleEngine from app state
+                        // For now, just log the priority path
+                        tracing::info!(
+                            "[Priority Scheduler] NewMessage: account={}, contact={}, content={}",
+                            account_id_owned,
+                            contact_id,
+                            content
+                        );
+                        
+                        // Priority 1: Try WorkflowEngine
+                        // if let Some(workflow_engine) = get_workflow_engine() {
+                        //     let handled = workflow_engine
+                        //         .process_message(&account_id_owned, &contact_id, &content)
+                        //         .await
+                        //         .unwrap_or(false);
+                        //     if handled {
+                        //         return; // Workflow handled it, stop here
+                        //     }
+                        // }
+                        
+                        // Priority 2: Fallback to RuleEngine
+                        // if let Some(rule_engine) = get_rule_engine() {
+                        //     rule_engine.evaluate_message(&content, &account_id_owned).await;
+                        // }
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("[Direct Link] Failed to parse payload: {}", e);
+                }
+            }
+        });
     }
 
     /// Get browser instance for an account

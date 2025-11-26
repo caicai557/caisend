@@ -10,17 +10,27 @@
             ? window.__TELEFLOW_ACCOUNT_ID
             : "default";
 
-    // Helper to send events to Rust
+    // 🚀 Phase 2.2: Replace Tauri IPC with CDP Runtime Binding
+    // Direct JS → Rust communication via teleflowNotify binding
     function sendEvent(type, data) {
-        if (window.__TAURI__ && window.__TAURI__.event) {
-            window.__TAURI__.event.emit(IPC_EVENT_NAME, {
-                eventType: type,
-                payload: { account_id: ACCOUNT_ID, ...data },
-            });
+        const payload = {
+            eventType: type,
+            payload: { account_id: ACCOUNT_ID, ...data },
+        };
+
+        if (window.teleflowNotify) {
+            // Direct link via CDP Runtime Binding (stable & fast)
+            try {
+                window.teleflowNotify(JSON.stringify(payload));
+            } catch (e) {
+                console.error("[MVP] teleflowNotify failed:", e);
+            }
         } else {
-            console.log("[MVP] Mock Event:", type, data);
+            // Fallback warning
+            console.warn("[MVP] window.teleflowNotify binding not ready!", payload);
         }
     }
+
 
     // 坐标查询：提供给 Rust 侧调度器
     window.getCoordinates = function (selector) {
