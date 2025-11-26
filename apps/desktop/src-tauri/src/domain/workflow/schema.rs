@@ -49,6 +49,7 @@ pub struct Condition {
 pub enum MatchType {
     Keyword,    // 关键词包含
     Regex,      // 正则表达式
+    Semantic,   // 语义匹配 (向量相似度)
     Timeout,    // 超时 (需要引擎支持时间触发器)
     Fallback,   // 兜底 (如果其他条件都不满足)
 }

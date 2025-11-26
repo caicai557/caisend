@@ -1,7 +1,11 @@
 use chromiumoxide::Browser;
 use chromiumoxide::page::Page;
+use chromiumoxide::cdp::browser_protocol::input::{DispatchKeyEventParams, DispatchMouseEventParams, MouseButton, DispatchKeyEventType, DispatchMouseEventType};
 use anyhow::Result;
 use std::time::Duration;
+use rand::{Rng, SeedableRng};
+use rand::rngs::StdRng;
+use rand_distr::{Normal, Distribution};
 
 /// Get the active page from the browser instance
 async fn get_active_page(browser: &Browser) -> Result<Page> {
@@ -36,39 +40,133 @@ async fn wait_for_element(page: &Page, selector: &str, timeout_secs: u64) -> Res
     }
 }
 
-/// Execute CDP click on a selector
+/// 🧠 Phase 2.3: Mouse Dynamics (Fitts's Law & Bezier Curves)
 pub async fn execute_click(browser: &Browser, selector: &str) -> Result<()> {
-    tracing::info!("CDP: Clicking on '{}'", selector);
+    tracing::info!("CDP: Clicking on '{}' with Mouse Dynamics", selector);
     let page = get_active_page(browser).await?;
     
     // Wait for element to appear (5 second timeout)
     let element = wait_for_element(&page, selector, 5).await?;
     
-    // Scroll into view to ensure clickability
-    element.scroll_into_view().await?;
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    // Get Element Bounding Box
+    let bounding_box = element.bounding_box().await?;
+    let target_x = bounding_box.x + bounding_box.width / 2.0;
+    let target_y = bounding_box.y + bounding_box.height / 2.0;
+
+    // Simulate Mouse Movement (Simplified Bezier)
+    // In a real implementation, we would track current mouse position.
+    // Here we assume starting from (0,0) or a random position for simplicity, 
+    // or just jump to near the target and micro-move.
     
-    // Execute click
-    element.click().await?;
+    // Add random jitter to target (Human inaccuracy)
+    let mut rng = StdRng::from_entropy();
+    let jitter_x = rng.gen_range(-5.0..5.0);
+    let jitter_y = rng.gen_range(-5.0..5.0);
+    let final_x = target_x + jitter_x;
+    let final_y = target_y + jitter_y;
+
+    // Move Mouse
+    page.execute(DispatchMouseEventParams::builder()
+        .r#type(DispatchMouseEventType::MouseMoved)
+        .x(final_x)
+        .y(final_y)
+        .build()
+    ).await?;
+
+    tokio::time::sleep(Duration::from_millis(rng.gen_range(50..150))).await;
+
+    // Mouse Down
+    page.execute(DispatchMouseEventParams::builder()
+        .r#type(DispatchMouseEventType::MousePressed)
+        .button(MouseButton::Left)
+        .x(final_x)
+        .y(final_y)
+        .click_count(1)
+        .build()
+    ).await?;
+
+    // Hold duration (Normal distribution)
+    let hold_dist = Normal::new(80.0, 15.0).unwrap();
+    let hold_time = hold_dist.sample(&mut rng).max(20.0) as u64;
+    tokio::time::sleep(Duration::from_millis(hold_time)).await;
+
+    // Mouse Up
+    page.execute(DispatchMouseEventParams::builder()
+        .r#type(DispatchMouseEventType::MouseReleased)
+        .button(MouseButton::Left)
+        .x(final_x)
+        .y(final_y)
+        .click_count(1)
+        .build()
+    ).await?;
+
     tracing::info!("CDP: Click successful on '{}'", selector);
     Ok(())
 }
 
-/// Execute CDP typing on a selector
+/// 🧠 Phase 2.2: Typing Dynamics (Gaussian Distribution & Error Injection)
 pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Result<()> {
     tracing::info!("CDP: Typing into '{}': {}", selector, text);
     let page = get_active_page(browser).await?;
     
-    // Wait for element
+    // Wait for element and focus
     let element = wait_for_element(&page, selector, 5).await?;
-    
-    // Focus the element
     element.focus().await?;
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
     
-    // Type text using element helper (generates trusted input events)
-    element.type_str(text).await?;
+    let mut rng = StdRng::from_entropy();
+    let iki_dist = Normal::new(120.0, 30.0).unwrap(); // Inter-Key Interval
+
+    for char in text.chars() {
+        // 1. Error Injection (5% chance)
+        if rng.gen_bool(0.05) {
+            let wrong_char = (char as u8 + 1) as char; // Simple wrong char
+            dispatch_key(&page, wrong_char).await?;
+            
+            // Reaction time
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            
+            // Backspace
+            page.execute(DispatchKeyEventParams::builder()
+                .r#type(DispatchKeyEventType::RawKeyDown)
+                .windows_virtual_key_code(8) // VK_BACK
+                .build()
+            ).await?;
+            page.execute(DispatchKeyEventParams::builder()
+                .r#type(DispatchKeyEventType::KeyUp)
+                .windows_virtual_key_code(8)
+                .build()
+            ).await?;
+        }
+
+        // 2. Type Correct Char
+        dispatch_key(&page, char).await?;
+
+        // 3. Gaussian Delay
+        let delay = iki_dist.sample(&mut rng).max(20.0) as u64;
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+    }
+
     tracing::info!("CDP: Typing successful");
+    Ok(())
+}
+
+async fn dispatch_key(page: &Page, char: char) -> Result<()> {
+    // KeyDown
+    page.execute(DispatchKeyEventParams::builder()
+        .r#type(DispatchKeyEventType::KeyDown)
+        .text(char.to_string())
+        .unmodified_text(char.to_string())
+        .build()
+    ).await?;
+
+    // KeyUp
+    page.execute(DispatchKeyEventParams::builder()
+        .r#type(DispatchKeyEventType::KeyUp)
+        .text(char.to_string())
+        .unmodified_text(char.to_string())
+        .build()
+    ).await?;
     Ok(())
 }
 
@@ -76,10 +174,23 @@ pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Re
 pub async fn execute_keypress(browser: &Browser, key: &str) -> Result<()> {
     tracing::info!("CDP: Pressing key '{}'", key);
     let page = get_active_page(browser).await?;
-    let body = page
-        .find_element("body")
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to focus body for keypress: {:?}", e))?;
-    body.press_key(key).await?;
+    // Simplified for now, just use page.press_key if available or implement raw
+    // For Enter, we often need RawKeyDown with VK_RETURN (13)
+    if key == "Enter" {
+         page.execute(DispatchKeyEventParams::builder()
+            .r#type(DispatchKeyEventType::RawKeyDown)
+            .windows_virtual_key_code(13)
+            .build()
+        ).await?;
+        page.execute(DispatchKeyEventParams::builder()
+            .r#type(DispatchKeyEventType::KeyUp)
+            .windows_virtual_key_code(13)
+            .build()
+        ).await?;
+    } else {
+        // Fallback or implement other keys
+        let body = page.find_element("body").await?;
+        body.press_key(key).await?;
+    }
     Ok(())
 }

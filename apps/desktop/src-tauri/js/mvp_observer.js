@@ -43,71 +43,85 @@
         };
     };
 
-    // MutationObserver to detect new messages
-    const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-            if (mutation.type === "childList") {
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        processNode(node);
-                    }
-                }
+    // 🧠 Phase 2.1: Neural Bridge (React Fiber Deep Perception)
+    // Traverse React Fiber tree to extract state directly from memory
+
+    function findReactFiber(dom) {
+        const key = Object.keys(dom).find((key) => key.startsWith("__reactFiber$"));
+        return key ? dom[key] : null;
+    }
+
+    function traverseFiber(fiber, results = []) {
+        if (!fiber) return results;
+
+        // Check for Message Component characteristics (Teact specific)
+        // Note: This requires reverse engineering Telegram Web Z's component names or props
+        // Heuristic: Look for 'message' prop or specific structure
+
+        // Example Heuristic for Message:
+        // Component with 'message' prop containing 'content' and 'senderId'
+        if (fiber.memoizedProps && fiber.memoizedProps.message) {
+            const msg = fiber.memoizedProps.message;
+            if (msg.content && msg.content.text) {
+                results.push({
+                    id: msg.id,
+                    content: msg.content.text.text || msg.content.text, // Handle different structures
+                    sender_id: msg.senderId,
+                    chat_id: msg.chatId,
+                    date: msg.date
+                });
             }
         }
-    });
 
-    function processNode(node) {
-        // Detect New Message (selectors需根据 Telegram Web 实际 DOM 校准)
-        if (node.classList && node.classList.contains("message-list-item")) {
-            const contentEl =
-                node.querySelector(".text-content") ||
-                node.querySelector("[data-message-text]");
-            if (contentEl) {
-                const text = contentEl.textContent;
+        // Traverse children and siblings
+        if (fiber.child) traverseFiber(fiber.child, results);
+        if (fiber.sibling) traverseFiber(fiber.sibling, results);
+
+        return results;
+    }
+
+    // Polling for Fiber updates (more stable than MutationObserver for internal state)
+    let lastMessageIds = new Set();
+
+    function scanFiberTree() {
+        const rootEl = document.querySelector("#root") || document.body; // Adjust root selector
+        const rootFiber = findReactFiber(rootEl);
+
+        if (!rootFiber) {
+            // console.debug("[Neural Bridge] Root fiber not found");
+            return;
+        }
+
+        const messages = traverseFiber(rootFiber);
+
+        for (const msg of messages) {
+            if (!lastMessageIds.has(msg.id)) {
+                lastMessageIds.add(msg.id);
+
+                // Send event via Neural Bridge
                 sendEvent("NewMessage", {
-                    content: text,
-                    sender: "unknown",
-                    chat_id: "current_chat",
+                    content: msg.content,
+                    sender: msg.sender_id,
+                    chat_id: msg.chat_id,
+                    raw_id: msg.id
                 });
 
-                // Check for Invite Links
-                if (text.includes("t.me/joinchat/") || text.includes("t.me/+")) {
-                    const match = text.match(/t\.me\/(joinchat\/|\+)[a-zA-Z0-9_]+/);
-                    if (match && match[0]) {
-                        sendEvent("InviteLinkFound", {
-                            link: match[0],
-                        });
-                    }
+                // Keep set size manageable
+                if (lastMessageIds.size > 1000) {
+                    const it = lastMessageIds.values();
+                    lastMessageIds.delete(it.next().value);
                 }
-            }
-        }
-
-        // Detect Unread Badge
-        if (node.classList && node.classList.contains("chat-list-item")) {
-            const badge = node.querySelector(".badge") || node.querySelector("[data-badge]");
-            if (badge) {
-                sendEvent("UnreadChatDetected", {
-                    chat_id: "unknown",
-                });
             }
         }
     }
 
-    // Start Observing
-    const startObserver = () => {
-        const root = document.body; // Or specific container
-        if (root) {
-            observer.observe(root, {
-                childList: true,
-                subtree: true,
-            });
-            console.log("[MVP] Observer Started");
-        } else {
-            setTimeout(startObserver, 1000);
-        }
+    // Start Neural Bridge
+    const startNeuralBridge = () => {
+        console.log("[Neural Bridge] Activated");
+        setInterval(scanFiberTree, 1000); // Scan every second
     };
 
     window.addEventListener("load", () => {
-        setTimeout(startObserver, 3000);
+        setTimeout(startNeuralBridge, 3000);
     });
 })();

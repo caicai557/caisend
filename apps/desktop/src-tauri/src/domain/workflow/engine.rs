@@ -84,24 +84,7 @@ impl WorkflowEngine {
         let outgoing_edges = definition.edges.iter()
             .filter(|e| e.source_node_id == instance.current_step_id);
 
-        for edge in outgoing_edges {
-            if let Some(condition) = &edge.condition {
-                // 调用御史台 (Evaluator)
-                match evaluator::evaluate_condition(message_content, condition) {
-                    Ok(true) => {
-                        tracing::info!("[WorkflowEngine] Condition matched: {:?}", condition);
-                        next_node_id = Some(edge.target_node_id.clone());
-                        break; // 找到第一个匹配的就停止
-                    },
-                    Ok(false) => continue,
-                    Err(e) => {
-                        tracing::warn!("[WorkflowEngine] Condition evaluation error: {}", e);
-                        continue;
-                    }
-                }
-            } else {
-                // 无条件边 (通常不应该出现在 WaitForReply 后面，除非是兜底)
-                next_node_id = Some(edge.target_node_id.clone());
+        // 获取 AI 服务 (如果可用)
                 break;
             }
         }

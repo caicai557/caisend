@@ -5,6 +5,7 @@ pub mod domain;
 pub mod error;
 pub mod managers;
 pub mod state;
+pub mod ai; // Phase 4: Cognition
 
 use managers::cdp_manager::CdpManager;
 use adapters::db::init_db;
@@ -31,6 +32,21 @@ pub fn run() {
                     .await
                     .expect("Failed to initialize database");
                 println!("=== DB INIT SUCCESS ===");
+                
+                // Initialize AI Service
+                // Note: In a real app, these paths should be resolved from resources
+                let model_path = "models/bge-small-en-v1.5.onnx";
+                let tokenizer_path = "models/tokenizer.json";
+                match crate::ai::inference::CognitionService::new(model_path, tokenizer_path) {
+                    Ok(service) => {
+                        app.manage(service);
+                        println!("=== AI SERVICE INITIALIZED ===");
+                    }
+                    Err(e) => {
+                        println!("=== AI SERVICE FAILED TO INIT (Non-fatal): {} ===", e);
+                    }
+                }
+
                 // Initialize CDP Manager for browser automation
                 let cdp_manager = CdpManager::new();
                 app.manage(cdp_manager);
