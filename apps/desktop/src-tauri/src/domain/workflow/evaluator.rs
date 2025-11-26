@@ -2,7 +2,7 @@ use crate::domain::workflow::schema::{Condition, MatchType};
 use crate::ai::inference::CognitionService;
 use regex::Regex;
 use anyhow::Result;
-use sqlx::{SqlitePool, Row};
+use sqlx::SqlitePool;
 
 // 评估输入消息是否满足条件
 pub async fn evaluate_condition(
@@ -20,7 +20,7 @@ pub async fn evaluate_condition(
         },
         MatchType::Semantic => {
             // 语义匹配逻辑
-            let (Some(cognition), Some(pool)) = (cognition, pool) else {
+            let (Some(_cognition), Some(_pool)) = (cognition, pool) else {
                 tracing::warn!("[Evaluator] Semantic match requested but CognitionService or DB pool missing");
                 return Ok(false);
             };
@@ -28,7 +28,7 @@ pub async fn evaluate_condition(
             let target_intent = condition.pattern.as_deref().ok_or_else(|| anyhow::anyhow!("Target intent label missing"))?;
             
             // 1. Encode input message
-            let embedding = cognition.encode(input_message)?;
+            let _embedding = _cognition.encode(input_message)?;
             
             // ... (Mock logic for now, real implementation commented out)
             // tracing::info!("[Evaluator] Semantic match (Mock): input='{}', target='{}'", input_message, target_intent);

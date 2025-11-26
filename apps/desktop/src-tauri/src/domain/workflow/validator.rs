@@ -116,7 +116,7 @@ impl WorkflowValidator {
         // 检查从触发器到所有节点的可达性
         let mut reachable = HashSet::new();
         for (trigger_id, _) in trigger_nodes {
-            if let Some(&trigger_idx) = node_indices.get(*trigger_id) {
+            if let Some(&trigger_idx) = node_indices.get(trigger_id) {
                 let mut dfs = Dfs::new(&graph, trigger_idx);
                 while let Some(node_idx) = dfs.next(&graph) {
                     reachable.insert(node_idx);

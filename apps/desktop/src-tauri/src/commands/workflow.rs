@@ -5,6 +5,7 @@ use crate::adapters::db::workflow_repo::WorkflowRepository;
 use crate::state::AppState;
 use crate::error::CoreError;
 use tauri::State;
+use sqlx::Row;
 
 #[tauri::command]
 pub async fn save_workflow_definition(
@@ -80,7 +81,7 @@ pub async fn save_workflow(
 pub async fn load_workflows(
     state: State<'_, AppState>,
 ) -> Result<Vec<WorkflowDefinition>, String> {
-    let rows = sqlx::query!(
+    let rows = sqlx::query(
         r#"
         SELECT id, name, version, nodes, edges, created_at, updated_at
         FROM workflow_definitions
@@ -93,14 +94,20 @@ pub async fn load_workflows(
 
     let mut workflows = Vec::new();
     for row in rows {
+        let nodes_json: String = row.try_get("nodes").map_err(|e| e.to_string())?;
+        let edges_json: String = row.try_get("edges").map_err(|e| e.to_string())?;
+
         let nodes: std::collections::HashMap<String, crate::domain::workflow::schema::WorkflowNode> = 
-            serde_json::from_str(&row.nodes).map_err(|e| e.to_string())?;
+            serde_json::from_str(&nodes_json).map_err(|e| e.to_string())?;
         let edges: Vec<crate::domain::workflow::schema::WorkflowEdge> = 
-            serde_json::from_str(&row.edges).map_err(|e| e.to_string())?;
+            serde_json::from_str(&edges_json).map_err(|e| e.to_string())?;
+
+        let id: String = row.try_get("id").map_err(|e| e.to_string())?;
+        let name: String = row.try_get("name").map_err(|e| e.to_string())?;
 
         workflows.push(WorkflowDefinition {
-            id: row.id,
-            name: row.name,
+            id,
+            name,
             description: "".to_string(), // 旧表没有 description 字段，待迁移后更新
             nodes,
             edges,
@@ -116,10 +123,10 @@ pub async fn delete_workflow(
     state: State<'_, AppState>,
     workflow_id: String,
 ) -> Result<(), String> {
-    sqlx::query!(
-        "DELETE FROM workflow_definitions WHERE id = ?",
-        workflow_id
+    sqlx::query(
+        "DELETE FROM workflow_definitions WHERE id = ?"
     )
+    .bind(workflow_id)
     .execute(state.pool())
     .await
     .map_err(|e| e.to_string())?;
@@ -134,11 +141,11 @@ pub async fn toggle_workflow_active(
     workflow_id: String,
     is_active: bool,
 ) -> Result<(), String> {
-    sqlx::query!(
-        "UPDATE workflow_definitions SET is_active = ? WHERE id = ?",
-        is_active,
-        workflow_id
+    sqlx::query(
+        "UPDATE workflow_definitions SET is_active = ? WHERE id = ?"
     )
+    .bind(is_active)
+    .bind(workflow_id)
     .execute(state.pool())
     .await
     .map_err(|e| e.to_string())?;

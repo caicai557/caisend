@@ -3,6 +3,7 @@ use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, SqlitePool};
 use std::str::FromStr;
 
 pub mod mvp_repo;
+pub mod workflow_repo;
 
 pub async fn init_db(database_url: &str) -> Result<SqlitePool, CoreError> {
     let mut options = SqliteConnectOptions::from_str(database_url)?

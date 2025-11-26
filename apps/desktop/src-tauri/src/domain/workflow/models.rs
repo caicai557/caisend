@@ -1,4 +1,8 @@
 use super::schema;
+use serde::{Serialize, Deserialize};
+use sqlx::{FromRow, Row};
+use sqlx::sqlite::SqliteRow;
+use serde_json;
 
 /// 工作流定义 (模板)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -7,7 +11,6 @@ pub struct WorkflowDefinition {
     pub account_id: Option<String>,
     pub name: String,
     pub description: Option<String>,
-    #[sqlx(json)]
     pub definition: schema::WorkflowDefinition, // 使用新的 DSL 结构
     pub created_at: String,
     pub updated_at: String,
@@ -24,7 +27,6 @@ pub struct WorkflowInstance {
     pub workflow_id: String,
     pub current_step_id: String,
     pub status: WorkflowStatus,
-    #[sqlx(json)]
     pub context: serde_json::Value,
     pub started_at: String,
     pub updated_at: String,

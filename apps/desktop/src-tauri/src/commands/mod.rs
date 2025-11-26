@@ -6,4 +6,4 @@ pub mod messaging;
 pub mod mvp_test;
 // pub mod crm;
 // pub mod analytics;
-// pub mod workflow;
+pub mod workflow;
