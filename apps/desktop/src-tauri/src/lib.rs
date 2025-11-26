@@ -11,6 +11,7 @@ pub mod ai; // Phase 4: Cognition
 use adapters::browser::cdp_adapter::CdpManager;
 use adapters::db::init_db;
 use adapters::db::mvp_repo::MvpRepository;
+use anyhow::Context;
 use domain::automation::RuleEngine;
 use domain::events::AppEvent;
 use domain::models::Message;
@@ -20,7 +21,7 @@ use std::sync::Arc;
 use tauri::{Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run() -> anyhow::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
@@ -31,7 +32,11 @@ pub fn run() {
                 let db_url = "sqlite://accounts.db";
                 let db_pool = init_db(db_url)
                     .await
-                    .expect("Failed to initialize database");
+                    .context("Failed to initialize database")
+                    .map_err(|e| {
+                        eprintln!("Database initialization failed: {:?}", e);
+                        e.to_string()
+                    })?;
                 println!("=== DB INIT SUCCESS ===");
                 
                 // Initialize AI Service
@@ -190,6 +195,8 @@ pub fn run() {
                     }
                 });
                 println!("=== EVENT LISTENER REGISTERED ===");
+                
+                Ok::<(), String>(())
             });
             println!("=== SETUP COMPLETE ===");
             Ok(())
@@ -210,5 +217,7 @@ pub fn run() {
             commands::workflow::toggle_workflow_active,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .context("Error while running Tauri application")?;
+    
+    Ok(())
 }

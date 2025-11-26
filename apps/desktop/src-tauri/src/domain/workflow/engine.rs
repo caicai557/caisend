@@ -38,3 +38,15 @@ impl WorkflowEngine {
         Ok(())
     }
 }
+
+#[async_trait::async_trait]
+impl crate::domain::ports::WorkflowEnginePort for WorkflowEngine {
+    async fn process_message(
+        &self,
+        account_id: &str,
+        conversation_id: &str,
+        content: &str,
+    ) -> Result<bool, anyhow::Error> {
+        self.process_message(account_id, conversation_id, content).await
+    }
+}

@@ -84,7 +84,7 @@ impl CdpManager {
                             "Attempt {}/{} to resolve DevTools websocket failed: {:?}. Retrying in {:?}",
                             attempt,
                             MAX_ATTEMPTS,
-                            last_err.as_ref().unwrap(),
+                            last_err.as_ref(),
                             backoff
                         );
                         sleep(backoff).await;
@@ -117,6 +117,9 @@ impl CdpManager {
         {
             tracing::error!("[CDP Binding] Failed to add binding: {:?}", e);
         }
+
+        // 🔥 Phase 2.2: Start heartbeat for connection health monitoring
+        self.start_heartbeat(browser.clone(), account_id.clone(), port);
 
         // Spawn handler event loop with binding event processing
         let account_clone = account_id.clone();
@@ -209,6 +212,95 @@ impl CdpManager {
         if let Some(_browser) = self.browsers.write().await.remove(account_id) {
             tracing::info!("CDP connection removed for {}", account_id);
         }
+    }
+
+    /// 🔥 Phase 2.2: Start heartbeat mechanism for connection health
+    /// 
+    /// Sends periodic heartbeat (Runtime.evaluate) every 30s to detect connection failures
+    /// If heartbeat fails, triggers reconnection with exponential backoff
+    fn start_heartbeat(&self, browser: Arc<Browser>, account_id: String, port: u16) {
+        let manager_clone = self.clone();
+        
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+            let mut consecutive_failures = 0u32;
+            
+            loop {
+                interval.tick().await;
+                
+                // Send heartbeat: try to list pages as a lightweight health check
+                match browser.pages().await {
+                    Ok(pages) => {
+                        if consecutive_failures > 0 {
+                            tracing::info!("[Heartbeat] Recovered for {}, {} pages active", account_id, pages.len());
+                        }
+                        consecutive_failures = 0;
+                    }
+                    Err(e) => {
+                        consecutive_failures += 1;
+                        tracing::error!(
+                            "[Heartbeat] Failed for {} (attempt {}): {:?}",
+                            account_id, consecutive_failures, e
+                        );
+                        
+                        // After 2 consecutive failures, trigger reconnection
+                        if consecutive_failures >= 2 {
+                            tracing::warn!("[Heartbeat] Connection lost for {}, triggering reconnection", account_id);
+                            
+                            // Remove dead connection
+                            manager_clone.disconnect(&account_id).await;
+                            
+                            // Attempt reconnection with exponential backoff
+                            if let Err(e) = manager_clone.reconnect_with_backoff(account_id.clone(), port).await {
+                                tracing::error!("[Reconnect] Failed for {}: {:?}", account_id, e);
+                            }
+                            
+                            break; // Exit heartbeat loop, new connection will have its own heartbeat
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /// 🔥 Phase 2.2: Reconnect with exponential backoff strategy
+    /// 
+    /// Attempts to reconnect up to 5 times with increasing delays:
+    /// 100ms -> 200ms -> 400ms -> 800ms -> 1600ms (capped at 30s)
+    async fn reconnect_with_backoff(&self, account_id: String, port: u16) -> Result<()> {
+        const MAX_ATTEMPTS: u32 = 5;
+        let mut delay = Duration::from_millis(100);
+        let max_delay = Duration::from_secs(30);
+        
+        for attempt in 1..=MAX_ATTEMPTS {
+            tracing::info!(
+                "[Reconnect] Attempt {}/{} for {} (waiting {:?})",
+                attempt, MAX_ATTEMPTS, account_id, delay
+            );
+            
+            tokio::time::sleep(delay).await;
+            
+            match self.connect(account_id.clone(), port).await {
+                Ok(_) => {
+                    tracing::info!("[Reconnect] Success for {} on attempt {}", account_id, attempt);
+                    return Ok(());
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[Reconnect] Attempt {}/{} failed for {}: {:?}",
+                        attempt, MAX_ATTEMPTS, account_id, e
+                    );
+                    
+                    // Exponential backoff: double the delay, up to max_delay
+                    delay = (delay * 2).min(max_delay);
+                }
+            }
+        }
+        
+        Err(anyhow::anyhow!(
+            "Reconnection failed for {} after {} attempts",
+            account_id, MAX_ATTEMPTS
+        ))
     }
 }
 

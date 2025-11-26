@@ -139,3 +139,14 @@ async fn execute_reply_sequence(
     tracing::info!("Automation sequence completed successfully");
     Ok(())
 }
+
+#[async_trait::async_trait]
+impl crate::domain::ports::RuleEnginePort for RuleEngine {
+    async fn evaluate_message(
+        &self,
+        content: &str,
+        account_id: &str,
+    ) -> Option<AutomationRule> {
+        self.evaluate_message(content, account_id).await
+    }
+}

@@ -1,6 +1,5 @@
 use crate::domain::events::AppEvent;
-use crate::domain::workflow::engine::WorkflowEngine;
-use crate::domain::automation::RuleEngine;
+use crate::domain::ports::{WorkflowEnginePort, RuleEnginePort};
 use tokio::sync::mpsc;
 use std::sync::Arc;
 
@@ -31,8 +30,8 @@ pub struct PrioritizedEvent {
 pub struct EventDispatcher {
     event_rx: mpsc::UnboundedReceiver<PrioritizedEvent>,
     event_tx: mpsc::UnboundedSender<PrioritizedEvent>,
-    workflow_engine: Option<Arc<WorkflowEngine>>,
-    rule_engine: Option<Arc<RuleEngine>>,
+    workflow_engine: Option<Arc<dyn WorkflowEnginePort>>,
+    rule_engine: Option<Arc<dyn RuleEnginePort>>,
 }
 
 impl EventDispatcher {
@@ -50,11 +49,11 @@ impl EventDispatcher {
         self.event_tx.clone()
     }
 
-    pub fn set_workflow_engine(&mut self, engine: Arc<WorkflowEngine>) {
+    pub fn set_workflow_engine(&mut self, engine: Arc<dyn WorkflowEnginePort>) {
         self.workflow_engine = Some(engine);
     }
 
-    pub fn set_rule_engine(&mut self, engine: Arc<RuleEngine>) {
+    pub fn set_rule_engine(&mut self, engine: Arc<dyn RuleEnginePort>) {
         self.rule_engine = Some(engine);
     }
 
@@ -129,5 +128,148 @@ impl EventDispatcher {
 impl Default for EventDispatcher {
     fn default() -> Self {
         Self::new()
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::models::{AutomationRule, Message};
+    use tokio::sync::Mutex;
+
+    // Mock Workflow Engine
+    struct MockWorkflowEngine {
+        should_handle: bool,
+        handled_count: Arc<Mutex<usize>>,
+    }
+
+    #[async_trait::async_trait]
+    impl WorkflowEnginePort for MockWorkflowEngine {
+        async fn process_message(
+            &self,
+            _account_id: &str,
+            _conversation_id: &str,
+            _content: &str,
+        ) -> Result<bool, anyhow::Error> {
+            let mut count = self.handled_count.lock().await;
+            *count += 1;
+            Ok(self.should_handle)
+        }
+    }
+
+    // Mock Rule Engine
+    struct MockRuleEngine {
+        should_match: bool,
+        matched_count: Arc<Mutex<usize>>,
+    }
+
+    #[async_trait::async_trait]
+    impl RuleEnginePort for MockRuleEngine {
+        async fn evaluate_message(
+            &self,
+            _content: &str,
+            _account_id: &str,
+        ) -> Option<AutomationRule> {
+            let mut count = self.matched_count.lock().await;
+            *count += 1;
+            
+            if self.should_match {
+                Some(AutomationRule {
+                    id: "test_rule".to_string(),
+                    account_id: None,
+                    trigger_type: crate::domain::models::TriggerType::Keyword,
+                    trigger_pattern: None,
+                    reply_text: None,
+                    delay_min_ms: 0,
+                    delay_max_ms: 0,
+                    is_enabled: true,
+                })
+            } else {
+                None
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_dispatch_priority_workflow_first() {
+        let mut dispatcher = EventDispatcher::new();
+        let wf_count = Arc::new(Mutex::new(0));
+        let rule_count = Arc::new(Mutex::new(0));
+
+        // Setup Workflow Engine (Handles message)
+        let wf_engine = Arc::new(MockWorkflowEngine {
+            should_handle: true,
+            handled_count: wf_count.clone(),
+        });
+        dispatcher.set_workflow_engine(wf_engine);
+
+        // Setup Rule Engine (Should NOT be called)
+        let rule_engine = Arc::new(MockRuleEngine {
+            should_match: true,
+            matched_count: rule_count.clone(),
+        });
+        dispatcher.set_rule_engine(rule_engine);
+
+        // Send message event
+        let event = PrioritizedEvent {
+            priority: EventPriority::Normal,
+            event: AppEvent::NewMessageReceived(Message {
+                id: "msg_1".to_string(),
+                conversation_id: "conv_1".to_string(),
+                content: "hello".to_string(),
+                sender_id: "user".to_string(),
+                message_type: "text".to_string(),
+                status: "received".to_string(),
+                created_at: "2023-01-01T00:00:00Z".to_string(),
+            }),
+            account_id: "acc_1".to_string(),
+        };
+
+        dispatcher.dispatch_event(event).await.unwrap();
+
+        // Verify: Workflow handled it, Rule engine ignored
+        assert_eq!(*wf_count.lock().await, 1);
+        assert_eq!(*rule_count.lock().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_dispatch_fallback_to_rule_engine() {
+        let mut dispatcher = EventDispatcher::new();
+        let wf_count = Arc::new(Mutex::new(0));
+        let rule_count = Arc::new(Mutex::new(0));
+
+        // Setup Workflow Engine (Does NOT handle message)
+        let wf_engine = Arc::new(MockWorkflowEngine {
+            should_handle: false,
+            handled_count: wf_count.clone(),
+        });
+        dispatcher.set_workflow_engine(wf_engine);
+
+        // Setup Rule Engine (Should be called)
+        let rule_engine = Arc::new(MockRuleEngine {
+            should_match: true,
+            matched_count: rule_count.clone(),
+        });
+        dispatcher.set_rule_engine(rule_engine);
+
+        // Send message event
+        let event = PrioritizedEvent {
+            priority: EventPriority::Normal,
+            event: AppEvent::NewMessageReceived(Message {
+                id: "msg_1".to_string(),
+                conversation_id: "conv_1".to_string(),
+                content: "hello".to_string(),
+                sender_id: "user".to_string(),
+                message_type: "text".to_string(),
+                status: "received".to_string(),
+                created_at: "2023-01-01T00:00:00Z".to_string(),
+            }),
+            account_id: "acc_1".to_string(),
+        };
+
+        dispatcher.dispatch_event(event).await.unwrap();
+
+        // Verify: Workflow checked but passed, Rule engine handled it
+        assert_eq!(*wf_count.lock().await, 1);
+        assert_eq!(*rule_count.lock().await, 1);
     }
 }

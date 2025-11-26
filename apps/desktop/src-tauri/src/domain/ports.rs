@@ -16,3 +16,13 @@ pub trait ExecutionAdapterPort: Send + Sync {
     // 暂时使用 String 作为 Action 和 Result 的占位符，后续会具体化
     async fn execute_action(&self, action: &str) -> Result<String, CoreError>;
 }
+
+#[async_trait]
+pub trait WorkflowEnginePort: Send + Sync {
+    async fn process_message(&self, account_id: &str, conversation_id: &str, content: &str) -> Result<bool, anyhow::Error>;
+}
+
+#[async_trait]
+pub trait RuleEnginePort: Send + Sync {
+    async fn evaluate_message(&self, content: &str, account_id: &str) -> Option<crate::domain::models::AutomationRule>;
+}
