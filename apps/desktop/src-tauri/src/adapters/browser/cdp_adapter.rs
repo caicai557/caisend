@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use chromiumoxide::Browser;
-use chromiumoxide::cdp::browser_protocol::runtime::EvaluateParams;
-use chromiumoxide::cdp::js_protocol::runtime::AddBindingParams;
+use chromiumoxide::cdp::js_protocol::runtime::{AddBindingParams, EvaluateParams};
 use futures::StreamExt;
 use serde::Deserialize;
 use std::collections::HashMap;

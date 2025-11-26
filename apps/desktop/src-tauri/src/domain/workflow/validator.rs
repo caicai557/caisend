@@ -170,6 +170,7 @@ impl WorkflowValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::workflow::schema::{WorkflowNode, WorkflowEdge};
     use std::collections::HashMap;
 
     #[test]
