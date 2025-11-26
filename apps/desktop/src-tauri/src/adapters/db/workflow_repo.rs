@@ -1,7 +1,9 @@
 use crate::domain::workflow::instance::WorkflowInstance;
 use crate::domain::workflow::schema::WorkflowDefinition;
+use crate::domain::ports::WorkflowRepositoryPort;
 use crate::error::CoreError;
 use sqlx::{SqlitePool, Row};
+use async_trait::async_trait;
 
 pub struct WorkflowRepository {
     pool: SqlitePool,
@@ -11,8 +13,11 @@ impl WorkflowRepository {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
+}
 
-    pub async fn save_definition(&self, def: &WorkflowDefinition) -> Result<(), CoreError> {
+#[async_trait]
+impl WorkflowRepositoryPort for WorkflowRepository {
+    async fn save_definition(&self, def: &WorkflowDefinition) -> Result<(), CoreError> {
         let nodes_json = serde_json::to_string(&def.nodes).unwrap_or_default();
         let edges_json = serde_json::to_string(&def.edges).unwrap_or_default();
 
@@ -40,7 +45,7 @@ impl WorkflowRepository {
         Ok(())
     }
 
-    pub async fn get_definition(&self, id: &str) -> Result<Option<WorkflowDefinition>, CoreError> {
+    async fn get_definition(&self, id: &str) -> Result<Option<WorkflowDefinition>, CoreError> {
         let row = sqlx::query("SELECT * FROM workflow_definitions WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
@@ -65,7 +70,7 @@ impl WorkflowRepository {
         }
     }
 
-    pub async fn save_instance(&self, instance: &WorkflowInstance) -> Result<(), CoreError> {
+    async fn save_instance(&self, instance: &WorkflowInstance) -> Result<(), CoreError> {
         sqlx::query(
             r#"
             INSERT INTO workflow_instances (id, definition_id, contact_id, current_node_id, state_data, status, next_execution_time, updated_at)
@@ -92,7 +97,7 @@ impl WorkflowRepository {
         Ok(())
     }
 
-    pub async fn get_active_instance(&self, contact_id: &str) -> Result<Option<WorkflowInstance>, CoreError> {
+    async fn get_active_instance(&self, contact_id: &str) -> Result<Option<WorkflowInstance>, CoreError> {
         sqlx::query_as::<_, WorkflowInstance>(
             r#"
             SELECT * FROM workflow_instances 

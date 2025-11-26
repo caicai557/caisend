@@ -1,19 +1,20 @@
 use super::schema::WorkflowDefinition as SchemaDefinition;
+use crate::domain::ports::WorkflowRepositoryPort;
 use anyhow::Result;
-use sqlx::SqlitePool;
+use std::sync::Arc;
 use tauri::AppHandle;
 
-/// WorkflowEngine placeholder to keep build green while full workflow runtime is being iterated.
+/// WorkflowEngine now depends on abstract ports, not concrete implementations.
 pub struct WorkflowEngine {
     #[allow(dead_code)]
     app_handle: AppHandle,
     #[allow(dead_code)]
-    pool: SqlitePool,
+    repo: Arc<dyn WorkflowRepositoryPort>,
 }
 
 impl WorkflowEngine {
-    pub fn new(app_handle: AppHandle, pool: SqlitePool) -> Self {
-        Self { app_handle, pool }
+    pub fn new(app_handle: AppHandle, repo: Arc<dyn WorkflowRepositoryPort>) -> Self {
+        Self { app_handle, repo }
     }
 
     /// Process an incoming message; current stub returns false (not handled).
@@ -23,6 +24,7 @@ impl WorkflowEngine {
         _contact_id: &str,
         _message_content: &str,
     ) -> Result<bool> {
+        // Here we would use self.repo.get_active_instance(...)
         Ok(false)
     }
 

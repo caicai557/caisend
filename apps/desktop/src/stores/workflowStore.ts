@@ -11,11 +11,10 @@ export interface WorkflowNode extends Node {
     };
 }
 
-export interface WorkflowEdge extends Edge {
-    data?: {
-        label?: string;
-    };
-}
+export type WorkflowEdge = Edge<{
+    label?: string;
+    condition?: any;
+}>;
 
 interface WorkflowState {
     nodes: WorkflowNode[];
