@@ -1,7 +1,10 @@
 use crate::domain::workflow::schema::WorkflowDefinition;
+use crate::domain::workflow::schema::WorkflowNode;
+use crate::domain::workflow::schema::WorkflowEdge;
 use crate::domain::workflow::instance::WorkflowInstance;
 use crate::domain::workflow::validator::{WorkflowValidator, ValidationReport};
 use crate::adapters::db::workflow_repo::WorkflowRepository;
+use crate::domain::ports::WorkflowRepositoryPort;
 use crate::state::AppState;
 use crate::error::CoreError;
 use tauri::State;
@@ -97,9 +100,9 @@ pub async fn load_workflows(
         let nodes_json: String = row.try_get("nodes").map_err(|e| e.to_string())?;
         let edges_json: String = row.try_get("edges").map_err(|e| e.to_string())?;
 
-        let nodes: std::collections::HashMap<String, crate::domain::workflow::schema::WorkflowNode> = 
+        let nodes: std::collections::HashMap<String, WorkflowNode> = 
             serde_json::from_str(&nodes_json).map_err(|e| e.to_string())?;
-        let edges: Vec<crate::domain::workflow::schema::WorkflowEdge> = 
+        let edges: Vec<WorkflowEdge> = 
             serde_json::from_str(&edges_json).map_err(|e| e.to_string())?;
 
         let id: String = row.try_get("id").map_err(|e| e.to_string())?;

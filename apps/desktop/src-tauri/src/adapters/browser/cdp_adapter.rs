@@ -190,22 +190,6 @@ impl CdpManager {
                             contact_id,
                             content
                         );
-                        
-                        // Priority 1: Try WorkflowEngine
-                        // if let Some(workflow_engine) = get_workflow_engine() {
-                        //     let handled = workflow_engine
-                        //         .process_message(&account_id_owned, &contact_id, &content)
-                        //         .await
-                        //         .unwrap_or(false);
-                        //     if handled {
-                        //         return; // Workflow handled it, stop here
-                        //     }
-                        // }
-                        
-                        // Priority 2: Fallback to RuleEngine
-                        // if let Some(rule_engine) = get_rule_engine() {
-                        //     rule_engine.evaluate_message(&content, &account_id_owned).await;
-                        // }
                     }
                 }
                 Err(e) => {

@@ -1,17 +1,17 @@
 use crate::domain::workflow::instance::WorkflowInstance;
-use crate::adapters::db::workflow_repo::WorkflowRepository;
+use crate::domain::ports::WorkflowRepositoryPort;
 use crate::error::CoreError;
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
 
 pub struct InstanceStateTracker {
-    repo: Arc<WorkflowRepository>,
+    repo: Arc<dyn WorkflowRepositoryPort>,
     cache: Cache<String, WorkflowInstance>, // Key: contact_id
 }
 
 impl InstanceStateTracker {
-    pub fn new(repo: Arc<WorkflowRepository>) -> Self {
+    pub fn new(repo: Arc<dyn WorkflowRepositoryPort>) -> Self {
         Self {
             repo,
             cache: Cache::builder()

@@ -40,7 +40,7 @@ impl WorkflowRepositoryPort for WorkflowRepository {
         .bind(edges_json)
         .execute(&self.pool)
         .await
-        .map_err(|e| CoreError::Db(e.to_string()))?;
+        .map_err(|e| CoreError::DbError(e.to_string()))?;
 
         Ok(())
     }
@@ -50,7 +50,7 @@ impl WorkflowRepositoryPort for WorkflowRepository {
             .bind(id)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| CoreError::Db(e.to_string()))?;
+            .map_err(|e| CoreError::DbError(e.to_string()))?;
 
         if let Some(r) = row {
             let nodes_json: String = r.try_get("nodes")?;
@@ -92,7 +92,7 @@ impl WorkflowRepositoryPort for WorkflowRepository {
         .bind(&instance.next_execution_time)
         .execute(&self.pool)
         .await
-        .map_err(|e| CoreError::Db(e.to_string()))?;
+        .map_err(|e| CoreError::DbError(e.to_string()))?;
 
         Ok(())
     }

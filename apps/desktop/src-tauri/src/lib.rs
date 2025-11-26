@@ -7,7 +7,7 @@ pub mod managers;
 pub mod state;
 pub mod ai; // Phase 4: Cognition
 
-use managers::cdp_manager::CdpManager;
+use adapters::browser::cdp_adapter::CdpManager;
 use adapters::db::init_db;
 use adapters::db::mvp_repo::MvpRepository;
 use domain::automation::RuleEngine;
