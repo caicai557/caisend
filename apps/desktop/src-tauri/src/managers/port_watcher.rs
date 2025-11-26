@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 
+use super::port_discoverer::{candidate_port_paths, read_port_from_file};
+
 /// 事件驱动的端口监视器
 /// 
 /// 使用文件系统监视器监听 DevToolsActivePort 文件的创建，
@@ -30,6 +32,11 @@ impl PortWatcher {
     pub async fn watch(mut self) -> Result<u16> {
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
 
+        // 快速路径：文件已存在时直接读取，避免等待事件
+        if let Some(port) = try_read_existing_port(&self.data_dir).await? {
+            return Ok(port);
+        }
+
         // 要监听的路径列表
         let watch_paths = vec![
             self.data_dir.clone(),
@@ -43,7 +50,7 @@ impl PortWatcher {
         for path in &watch_paths {
             if path.exists() {
                 watcher
-                    .watch(path, RecursiveMode::NonRecursive)
+                    .watch(path, RecursiveMode::Recursive)
                     .with_context(|| format!("Failed to watch path: {:?}", path))?;
                 info!("Watching for DevToolsActivePort at: {:?}", path);
             } else {
@@ -51,13 +58,12 @@ impl PortWatcher {
             }
         }
 
-        let data_dir = self.data_dir.clone();
         let port_tx = self.port_tx.clone();
 
         // 在后台任务中处理文件系统事件
         tokio::spawn(async move {
             while let Some(event) = event_rx.recv().await {
-                if let Err(e) = handle_fs_event(event, &data_dir, &port_tx).await {
+                if let Err(e) = handle_fs_event(event, &port_tx).await {
                     warn!("Error handling file system event: {:?}", e);
                 }
             }
@@ -106,7 +112,6 @@ fn create_watcher(
 /// 处理文件系统事件
 async fn handle_fs_event(
     event_res: notify::Result<Event>,
-    data_dir: &PathBuf,
     port_tx: &mpsc::UnboundedSender<u16>,
 ) -> Result<()> {
     let event = event_res?;
@@ -144,21 +149,24 @@ async fn handle_fs_event(
 }
 
 /// 从文件中读取端口号
-async fn read_port_from_file(path: &PathBuf) -> Result<u16> {
-    use tokio::fs;
+async fn try_read_existing_port(data_dir: &PathBuf) -> Result<Option<u16>> {
+    for path in candidate_port_paths(data_dir) {
+        let exists = match tokio::fs::try_exists(&path).await {
+            Ok(flag) => flag,
+            Err(e) => {
+                warn!("Failed to check port file existence {:?}: {:?}", path, e);
+                false
+            }
+        };
 
-    let content = fs::read_to_string(path).await?;
-    let line = content
-        .lines()
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("Port file is empty"))?;
-
-    let port = line
-        .trim()
-        .parse::<u16>()
-        .with_context(|| format!("Failed to parse port from '{}'", line))?;
-
-    Ok(port)
+        if exists {
+            match read_port_from_file(&path).await {
+                Ok(port) => return Ok(Some(port)),
+                Err(e) => warn!("Failed to read existing port from {:?}: {:?}", path, e),
+            }
+        }
+    }
+    Ok(None)
 }
 
 #[cfg(test)]
@@ -168,9 +176,9 @@ mod tests {
     use tokio::io::AsyncWriteExt;
 
     #[tokio::test]
-    async fn test_port_watcher() {
+    async fn test_port_watcher() -> Result<()> {
         let temp_dir = std::env::temp_dir().join("teleflow_test_watcher");
-        create_dir_all(&temp_dir).await.unwrap();
+        create_dir_all(&temp_dir).await?;
 
         let watcher = PortWatcher::new(temp_dir.clone());
 
@@ -179,18 +187,19 @@ mod tests {
         tokio::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
             let port_file = temp_dir_clone.join("DevToolsActivePort");
-            let mut file = File::create(&port_file).await.unwrap();
-            file.write_all(b"9876\n/devtools/browser/test")
-                .await
-                .unwrap();
+            if let Ok(mut file) = File::create(&port_file).await {
+                let _ = file
+                    .write_all(b"9876\n/devtools/browser/test")
+                    .await;
+            }
         });
 
         // 等待监视器检测到端口
-        let result = watcher.watch().await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 9876);
+        let port = watcher.watch().await?;
+        assert_eq!(port, 9876);
 
         // 清理
         tokio::fs::remove_dir_all(&temp_dir).await.ok();
+        Ok(())
     }
 }

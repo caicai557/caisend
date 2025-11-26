@@ -1,7 +1,7 @@
 use tokio::fs;
 use tokio::time::{sleep, Duration};
 use anyhow::{Result, anyhow};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::info;
 
 /// 严谨的端口发现机制 (基于轮询)
@@ -10,10 +10,7 @@ use tracing::info;
 /// 文件第一行包含 CDP 端口号。此函数轮询该文件直到找到端口或超时。
 pub async fn discover_cdp_port(data_dir: PathBuf) -> Result<u16> {
     // WebView2 (特别是在 Windows 上) 通常在 EBWebView 子目录下创建端口文件
-    let potential_paths = vec![
-        data_dir.join("DevToolsActivePort"),
-        data_dir.join("EBWebView").join("DevToolsActivePort"),
-    ];
+    let potential_paths = candidate_port_paths(&data_dir);
 
     info!("Discovering CDP port from data directory: {:?}", data_dir);
 
@@ -21,7 +18,15 @@ pub async fn discover_cdp_port(data_dir: PathBuf) -> Result<u16> {
     for attempt in 0..30 {
         for port_file_path in &potential_paths {
             // 检查文件是否存在
-            if fs::try_exists(port_file_path).await.unwrap_or(false) {
+            let exists = match fs::try_exists(port_file_path).await {
+                Ok(flag) => flag,
+                Err(e) => {
+                    tracing::warn!("Failed to check port file existence {:?}: {}", port_file_path, e);
+                    false
+                }
+            };
+
+            if exists {
                 // 如果存在,尝试读取端口号
                 match read_port_from_file(port_file_path).await {
                     Ok(port) => {
@@ -56,7 +61,14 @@ pub async fn discover_cdp_port(data_dir: PathBuf) -> Result<u16> {
 /// /devtools/browser/xxxxx
 /// ```
 /// 第一行是端口号,第二行是 WebSocket 路径
-async fn read_port_from_file(path: &PathBuf) -> Result<u16> {
+pub(crate) fn candidate_port_paths(data_dir: &Path) -> Vec<PathBuf> {
+    vec![
+        data_dir.join("DevToolsActivePort"),
+        data_dir.join("EBWebView").join("DevToolsActivePort"),
+    ]
+}
+
+pub(crate) async fn read_port_from_file(path: &Path) -> Result<u16> {
     let content = fs::read_to_string(path).await?;
     
     // 文件内容通常是 "PORT\nws_path\n",我们只需要第一行
@@ -78,20 +90,20 @@ mod tests {
     use tokio::io::AsyncWriteExt;
 
     #[tokio::test]
-    async fn test_discover_port_success() {
+    async fn test_discover_port_success() -> Result<()> {
         let temp_dir = std::env::temp_dir().join("teleflow_test_port_discovery");
-        create_dir_all(&temp_dir).await.unwrap();
+        create_dir_all(&temp_dir).await?;
         
         let port_file = temp_dir.join("DevToolsActivePort");
-        let mut file = tokio::fs::File::create(&port_file).await.unwrap();
-        file.write_all(b"9223\n/devtools/browser/test").await.unwrap();
+        let mut file = tokio::fs::File::create(&port_file).await?;
+        file.write_all(b"9223\n/devtools/browser/test").await?;
         drop(file);
 
-        let result = discover_cdp_port(temp_dir.clone()).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 9223);
+        let result = discover_cdp_port(temp_dir.clone()).await?;
+        assert_eq!(result, 9223);
 
         // Cleanup
         tokio::fs::remove_dir_all(&temp_dir).await.ok();
+        Ok(())
     }
 }

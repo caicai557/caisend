@@ -17,6 +17,9 @@ pub enum CoreError {
     #[error("An unexpected error occurred: {0}")]
     InternalError(String),
 
+    #[error("Poisoned state: {0}")]
+    Poisoned(String),
+
     #[error("Validation failed: {0}")]
     ValidationError(String),
 

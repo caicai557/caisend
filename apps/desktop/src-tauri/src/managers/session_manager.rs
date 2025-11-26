@@ -1,7 +1,7 @@
 use crate::domain::models::Account;
 use crate::error::CoreError;
 use crate::adapters::browser::cdp_adapter::CdpManager;
-use crate::managers::port_discoverer;
+use crate::managers::port_watcher::PortWatcher;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 pub struct SessionManager {
@@ -67,8 +67,8 @@ impl SessionManager {
         tauri::async_runtime::spawn(async move {
             tracing::info!("[CDP] Starting port discovery for account: {}", account_id_clone);
             
-            // Discover dynamic CDP port (with 15s timeout)
-            let port = match port_discoverer::discover_cdp_port(session_dir_clone).await {
+            // Discover dynamic CDP port (event-driven with fallback)
+            let port = match PortWatcher::new(session_dir_clone).watch().await {
                 Ok(p) => {
                     tracing::info!("[CDP] Discovered port {} for account {}", p, account_id_clone);
                     p

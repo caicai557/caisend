@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use chromiumoxide::Browser;
+use chromiumoxide::cdp::browser_protocol::runtime::EvaluateParams;
 use chromiumoxide::cdp::js_protocol::runtime::AddBindingParams;
 use futures::StreamExt;
 use serde::Deserialize;
@@ -220,6 +221,20 @@ impl CdpManager {
     /// If heartbeat fails, triggers reconnection with exponential backoff
     fn start_heartbeat(&self, browser: Arc<Browser>, account_id: String, port: u16) {
         let manager_clone = self.clone();
+        let ping_params = match EvaluateParams::builder()
+            .expression("(()=> 'teleflow-ping')()")
+            .return_by_value(true)
+            .build()
+        {
+            Ok(params) => params,
+            Err(e) => {
+                tracing::error!(
+                    "[Heartbeat] Failed to build ping payload for {}: {}",
+                    account_id, e
+                );
+                return;
+            }
+        };
         
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(30));
@@ -227,37 +242,69 @@ impl CdpManager {
             
             loop {
                 interval.tick().await;
-                
-                // Send heartbeat: try to list pages as a lightweight health check
-                match browser.pages().await {
+
+                let heartbeat_ok = match browser.pages().await {
                     Ok(pages) => {
-                        if consecutive_failures > 0 {
-                            tracing::info!("[Heartbeat] Recovered for {}, {} pages active", account_id, pages.len());
+                        if let Some(page) = pages.into_iter().next() {
+                            match page.evaluate_expression(ping_params.clone()).await {
+                                Ok(_) => true,
+                                Err(e) => {
+                                    tracing::warn!(
+                                        "[Heartbeat] Evaluate failed for {}: {:?}",
+                                        account_id,
+                                        e
+                                    );
+                                    false
+                                }
+                            }
+                        } else {
+                            tracing::warn!(
+                                "[Heartbeat] No active pages for {}, treating as failure",
+                                account_id
+                            );
+                            false
                         }
-                        consecutive_failures = 0;
                     }
                     Err(e) => {
-                        consecutive_failures += 1;
-                        tracing::error!(
-                            "[Heartbeat] Failed for {} (attempt {}): {:?}",
-                            account_id, consecutive_failures, e
+                        tracing::warn!(
+                            "[Heartbeat] Failed to list pages for {}: {:?}",
+                            account_id,
+                            e
                         );
-                        
-                        // After 2 consecutive failures, trigger reconnection
-                        if consecutive_failures >= 2 {
-                            tracing::warn!("[Heartbeat] Connection lost for {}, triggering reconnection", account_id);
-                            
-                            // Remove dead connection
-                            manager_clone.disconnect(&account_id).await;
-                            
-                            // Attempt reconnection with exponential backoff
-                            if let Err(e) = manager_clone.reconnect_with_backoff(account_id.clone(), port).await {
-                                tracing::error!("[Reconnect] Failed for {}: {:?}", account_id, e);
-                            }
-                            
-                            break; // Exit heartbeat loop, new connection will have its own heartbeat
-                        }
+                        false
                     }
+                };
+
+                if heartbeat_ok {
+                    if consecutive_failures > 0 {
+                        tracing::info!(
+                            "[Heartbeat] Recovered for {}, consecutive_failures reset",
+                            account_id
+                        );
+                    }
+                    consecutive_failures = 0;
+                    continue;
+                }
+
+                consecutive_failures += 1;
+                tracing::error!(
+                    "[Heartbeat] Failed for {} (attempt {})",
+                    account_id, consecutive_failures
+                );
+                
+                // After 2 consecutive failures, trigger reconnection
+                if consecutive_failures >= 2 {
+                    tracing::warn!("[Heartbeat] Connection lost for {}, triggering reconnection", account_id);
+                    
+                    // Remove dead connection
+                    manager_clone.disconnect(&account_id).await;
+                    
+                    // Attempt reconnection with exponential backoff
+                    if let Err(e) = manager_clone.reconnect_with_backoff(account_id.clone(), port).await {
+                        tracing::error!("[Reconnect] Failed for {}: {:?}", account_id, e);
+                    }
+                    
+                    break; // Exit heartbeat loop, new connection will have its own heartbeat
                 }
             }
         });
