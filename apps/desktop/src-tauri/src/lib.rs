@@ -5,6 +5,7 @@ pub mod domain;
 pub mod error;
 pub mod managers;
 pub mod state;
+pub mod infrastructure;
 pub mod ai; // Phase 4: Cognition
 
 use adapters::browser::cdp_adapter::CdpManager;

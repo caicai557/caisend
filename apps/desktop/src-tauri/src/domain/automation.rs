@@ -1,6 +1,6 @@
 use crate::actuator::service::{execute_click, execute_typing};
 use crate::domain::models::{AutomationRule, TriggerType};
-use crate::managers::cdp_manager::{CdpManager, DEFAULT_WEBVIEW2_CDP_PORT};
+use crate::adapters::browser::cdp_adapter::{CdpManager, DEFAULT_WEBVIEW2_CDP_PORT};
 use crate::state::AppState;
 use rand::Rng;
 use tauri::{AppHandle, Manager};

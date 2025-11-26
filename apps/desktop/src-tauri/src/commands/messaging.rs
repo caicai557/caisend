@@ -1,5 +1,5 @@
 use crate::error::CoreError;
-use crate::managers::cdp_manager::{CdpManager, DEFAULT_WEBVIEW2_CDP_PORT};
+use crate::adapters::browser::cdp_adapter::{CdpManager, DEFAULT_WEBVIEW2_CDP_PORT};
 use crate::state::AppState;
 use tauri::State;
 

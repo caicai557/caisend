@@ -1,4 +1,3 @@
-use teleflow_desktop_lib::actuator::scheduler::FocusScheduler;
 use teleflow_desktop_lib::adapters::db::init_db;
 use teleflow_desktop_lib::domain::events::AppEvent;
 use teleflow_desktop_lib::domain::models::Message;
@@ -11,7 +10,7 @@ async fn test_message_broadcast() {
     // Run migrations manually or ensure init_db does it.
     // init_db calls sqlx::migrate!(), so it should work if migrations are embedded.
 
-    let cold: AppStore<Cold> = AppStore::new(db_pool, FocusScheduler::noop());
+    let cold: AppStore<Cold> = AppStore::new(db_pool);
     let app_state: AppState = cold.into_ready();
     let mut rx = app_state.subscribe_events();
 

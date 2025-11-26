@@ -1,6 +1,6 @@
 use crate::domain::models::Account;
 use crate::error::CoreError;
-use crate::managers::cdp_manager::CdpManager;
+use crate::adapters::browser::cdp_adapter::CdpManager;
 use crate::managers::port_discoverer;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
