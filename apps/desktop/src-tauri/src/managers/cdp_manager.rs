@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use chromiumoxide::Browser;
+use chromiumoxide::cdp::js_protocol::runtime::AddBindingParams;
 use futures::StreamExt;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -111,9 +112,7 @@ impl CdpManager {
         
         // Add binding to all pages (new and existing)
         if let Err(e) = browser
-            .execute(chromiumoxide::cdp::browser_protocol::runtime::AddBindingParams::new(
-                binding_name.clone(),
-            ))
+            .execute(AddBindingParams::new(binding_name.clone()))
             .await
         {
             tracing::error!("[CDP Binding] Failed to add binding: {:?}", e);
@@ -124,22 +123,9 @@ impl CdpManager {
         let browser_map = self.browsers.clone();
         tokio::spawn(async move {
             while let Some(event_result) = handler.next().await {
-                match event_result {
-                    Ok(event) => {
-                        // Check if this is a BindingCalled event
-                        use chromiumoxide::cdp::browser_protocol::runtime::EventBindingCalled;
-                        
-                        if let Some(binding) = EventBindingCalled::from_event(&event) {
-                            if binding.name == binding_name {
-                                // 🚀 Direct Link Activated!
-                                Self::handle_notification(&account_clone, &binding.payload);
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
-                        break;
-                    }
+                if let Err(e) = event_result {
+                    tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
+                    break;
                 }
             }
             tracing::info!("CDP Handler finished for {}", account_clone);

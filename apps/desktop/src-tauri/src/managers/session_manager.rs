@@ -44,7 +44,7 @@ impl SessionManager {
         let mut builder = WebviewWindowBuilder::new(&self.app_handle, &window_label, url)
             .title(format!("Teleflow - {}", account.name))
             .inner_size(1024.0, 768.0)
-            .data_directory(session_dir); // CRITICAL: Data Partitioning
+            .data_directory(session_dir.clone()); // CRITICAL: Data Partitioning
 
         // Inject MVP Observer Script (MVP-T3)
         let injection = format!(

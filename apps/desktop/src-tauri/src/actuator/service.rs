@@ -1,11 +1,14 @@
 use chromiumoxide::Browser;
 use chromiumoxide::page::Page;
-use chromiumoxide::cdp::browser_protocol::input::{DispatchKeyEventParams, DispatchMouseEventParams, MouseButton, DispatchKeyEventType, DispatchMouseEventType};
-use anyhow::Result;
+use chromiumoxide::cdp::browser_protocol::input::{
+    DispatchKeyEventParams, DispatchMouseEventParams, MouseButton, 
+    DispatchKeyEventType, DispatchMouseEventType
+};
+use anyhow::{Result, anyhow};
 use std::time::Duration;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
-use rand_distr::{Normal, Distribution};
+use rand::distributions::{Distribution, Uniform};
 
 /// Get the active page from the browser instance
 async fn get_active_page(browser: &Browser) -> Result<Page> {
@@ -54,51 +57,49 @@ pub async fn execute_click(browser: &Browser, selector: &str) -> Result<()> {
     let target_y = bounding_box.y + bounding_box.height / 2.0;
 
     // Simulate Mouse Movement (Simplified Bezier)
-    // In a real implementation, we would track current mouse position.
-    // Here we assume starting from (0,0) or a random position for simplicity, 
-    // or just jump to near the target and micro-move.
-    
-    // Add random jitter to target (Human inaccuracy)
     let mut rng = StdRng::from_entropy();
-    let jitter_x = rng.gen_range(-5.0..5.0);
-    let jitter_y = rng.gen_range(-5.0..5.0);
+    let jitter = Uniform::new(-5.0, 5.0);
+    let jitter_x = jitter.sample(&mut rng);
+    let jitter_y = jitter.sample(&mut rng);
     let final_x = target_x + jitter_x;
     let final_y = target_y + jitter_y;
 
     // Move Mouse
-    page.execute(DispatchMouseEventParams::builder()
+    let move_event = DispatchMouseEventParams::builder()
         .r#type(DispatchMouseEventType::MouseMoved)
         .x(final_x)
         .y(final_y)
         .build()
-    ).await?;
+        .map_err(|e| anyhow!(e))?;
+    page.execute(move_event).await?;
 
     tokio::time::sleep(Duration::from_millis(rng.gen_range(50..150))).await;
 
     // Mouse Down
-    page.execute(DispatchMouseEventParams::builder()
+    let down_event = DispatchMouseEventParams::builder()
         .r#type(DispatchMouseEventType::MousePressed)
         .button(MouseButton::Left)
         .x(final_x)
         .y(final_y)
         .click_count(1)
         .build()
-    ).await?;
+        .map_err(|e| anyhow!(e))?;
+    page.execute(down_event).await?;
 
-    // Hold duration (Normal distribution)
-    let hold_dist = Normal::new(80.0, 15.0).unwrap();
-    let hold_time = hold_dist.sample(&mut rng).max(20.0) as u64;
+    // Hold duration (simple uniform fallback)
+    let hold_time = rng.gen_range(60..120) as u64;
     tokio::time::sleep(Duration::from_millis(hold_time)).await;
 
     // Mouse Up
-    page.execute(DispatchMouseEventParams::builder()
+    let up_event = DispatchMouseEventParams::builder()
         .r#type(DispatchMouseEventType::MouseReleased)
         .button(MouseButton::Left)
         .x(final_x)
         .y(final_y)
         .click_count(1)
         .build()
-    ).await?;
+        .map_err(|e| anyhow!(e))?;
+    page.execute(up_event).await?;
 
     tracing::info!("CDP: Click successful on '{}'", selector);
     Ok(())
@@ -115,7 +116,7 @@ pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Re
     tokio::time::sleep(Duration::from_millis(200)).await;
     
     let mut rng = StdRng::from_entropy();
-    let iki_dist = Normal::new(120.0, 30.0).unwrap(); // Inter-Key Interval
+    let delay_range = Uniform::new_inclusive(60u64, 180u64); // Inter-Key Interval fallback
 
     for char in text.chars() {
         // 1. Error Injection (5% chance)
@@ -127,24 +128,27 @@ pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Re
             tokio::time::sleep(Duration::from_millis(300)).await;
             
             // Backspace
-            page.execute(DispatchKeyEventParams::builder()
+            let back_down = DispatchKeyEventParams::builder()
                 .r#type(DispatchKeyEventType::RawKeyDown)
                 .windows_virtual_key_code(8) // VK_BACK
                 .build()
-            ).await?;
-            page.execute(DispatchKeyEventParams::builder()
+                .map_err(|e| anyhow!(e))?;
+            page.execute(back_down).await?;
+
+            let back_up = DispatchKeyEventParams::builder()
                 .r#type(DispatchKeyEventType::KeyUp)
                 .windows_virtual_key_code(8)
                 .build()
-            ).await?;
+                .map_err(|e| anyhow!(e))?;
+            page.execute(back_up).await?;
         }
 
         // 2. Type Correct Char
         dispatch_key(&page, char).await?;
 
         // 3. Gaussian Delay
-        let delay = iki_dist.sample(&mut rng).max(20.0) as u64;
-        tokio::time::sleep(Duration::from_millis(delay)).await;
+        let delay = delay_range.sample(&mut rng);
+        tokio::time::sleep(Duration::from_millis(delay.max(20))).await;
     }
 
     tracing::info!("CDP: Typing successful");
@@ -153,20 +157,22 @@ pub async fn execute_typing(browser: &Browser, selector: &str, text: &str) -> Re
 
 async fn dispatch_key(page: &Page, char: char) -> Result<()> {
     // KeyDown
-    page.execute(DispatchKeyEventParams::builder()
+    let down = DispatchKeyEventParams::builder()
         .r#type(DispatchKeyEventType::KeyDown)
         .text(char.to_string())
         .unmodified_text(char.to_string())
         .build()
-    ).await?;
+        .map_err(|e| anyhow!(e))?;
+    page.execute(down).await?;
 
     // KeyUp
-    page.execute(DispatchKeyEventParams::builder()
+    let up = DispatchKeyEventParams::builder()
         .r#type(DispatchKeyEventType::KeyUp)
         .text(char.to_string())
         .unmodified_text(char.to_string())
         .build()
-    ).await?;
+        .map_err(|e| anyhow!(e))?;
+    page.execute(up).await?;
     Ok(())
 }
 
@@ -177,16 +183,19 @@ pub async fn execute_keypress(browser: &Browser, key: &str) -> Result<()> {
     // Simplified for now, just use page.press_key if available or implement raw
     // For Enter, we often need RawKeyDown with VK_RETURN (13)
     if key == "Enter" {
-         page.execute(DispatchKeyEventParams::builder()
+         let enter_down = DispatchKeyEventParams::builder()
             .r#type(DispatchKeyEventType::RawKeyDown)
             .windows_virtual_key_code(13)
             .build()
-        ).await?;
-        page.execute(DispatchKeyEventParams::builder()
+            .map_err(|e| anyhow!(e))?;
+        page.execute(enter_down).await?;
+
+        let enter_up = DispatchKeyEventParams::builder()
             .r#type(DispatchKeyEventType::KeyUp)
             .windows_virtual_key_code(13)
             .build()
-        ).await?;
+            .map_err(|e| anyhow!(e))?;
+        page.execute(enter_up).await?;
     } else {
         // Fallback or implement other keys
         let body = page.find_element("body").await?;

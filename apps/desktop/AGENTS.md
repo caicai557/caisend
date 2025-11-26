@@ -30,3 +30,4 @@
 - Do not commit production `data/database.db`; use sanitized or empty samples.
 - Keep `setting.ini` and `[adsorb-extend]` switches in sync with resource dictionaries; keep language keys paired.
 - Isolate account experiments under `data/<account>/` and ensure hotkey/adsorb settings do not cross-contaminate profiles.
+- Database schema guardrails: `rules` table canonical columns are `(id, account_id, trigger_type, trigger_pattern, reply_text, delay_min_ms, delay_max_ms, is_enabled)` as of migrations `20251125152000_fix_rules_schema` and `20251125162000_rules_schema_freeze`; avoid editing older migrations—add new ones for any changes, and back up `accounts.db` before applying.

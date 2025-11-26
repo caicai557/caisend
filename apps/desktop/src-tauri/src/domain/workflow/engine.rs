@@ -85,6 +85,26 @@ impl WorkflowEngine {
             .filter(|e| e.source_node_id == instance.current_step_id);
 
         // 获取 AI 服务 (如果可用)
+        let cognition_state = self.app_handle.try_state::<crate::ai::inference::CognitionService>();
+        let cognition = cognition_state.as_ref().map(|s| s.inner());
+
+        for edge in outgoing_edges {
+            if let Some(condition) = &edge.condition {
+                // 调用御史台 (Evaluator)
+                match evaluator::evaluate_condition(message_content, condition, cognition, Some(&self.pool)).await {
+                    Ok(true) => {
+                        next_node_id = Some(edge.target_node_id.clone());
+                        break;
+                    }
+                    Ok(false) => continue,
+                    Err(e) => {
+                        tracing::error!("[WorkflowEngine] Condition evaluation error: {}", e);
+                        continue;
+                    }
+                }
+            } else {
+                // 无条件边 (通常不应该出现在 WaitForReply 节点，除非是默认路径)
+                next_node_id = Some(edge.target_node_id.clone());
                 break;
             }
         }

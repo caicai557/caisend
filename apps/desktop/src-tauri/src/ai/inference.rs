@@ -40,16 +40,26 @@ impl CognitionService {
         let batch_size = 1;
         let sequence_length = input_ids.len();
 
-        // 2. Prepare Inputs
-        let input_ids_tensor = ort::Value::from_array(
-            (vec![batch_size, sequence_length], input_ids.into_boxed_slice())
+        // 2. Prepare Inputs using ndarray
+        let input_ids_array = ndarray::Array2::from_shape_vec(
+            (batch_size, sequence_length), 
+            input_ids
         )?;
-        let attention_mask_tensor = ort::Value::from_array(
-            (vec![batch_size, sequence_length], attention_mask.into_boxed_slice())
+        
+        let attention_mask_array = ndarray::Array2::from_shape_vec(
+            (batch_size, sequence_length), 
+            attention_mask
         )?;
-        let token_type_ids_tensor = ort::Value::from_array(
-            (vec![batch_size, sequence_length], token_type_ids.into_boxed_slice())
+        
+        let token_type_ids_array = ndarray::Array2::from_shape_vec(
+            (batch_size, sequence_length), 
+            token_type_ids
         )?;
+
+        // ort 2.0 supports creating Value directly from ndarray
+        let input_ids_tensor = ort::Value::from_array(input_ids_array)?;
+        let attention_mask_tensor = ort::Value::from_array(attention_mask_array)?;
+        let token_type_ids_tensor = ort::Value::from_array(token_type_ids_array)?;
 
         let inputs = ort::inputs![
             "input_ids" => input_ids_tensor,
@@ -61,11 +71,6 @@ impl CognitionService {
         let outputs = self.session.run(inputs)?;
         
         // 4. Extract Embeddings (last_hidden_state)
-        // Shape: [batch_size, sequence_length, hidden_size]
-        // We usually take the CLS token (index 0) or mean pooling. 
-        // For BGE models, CLS token is often used for classification/similarity.
-        // Let's assume we want the CLS token embedding (first token).
-        
         let output_tensor = outputs["last_hidden_state"].extract_tensor::<f32>()?;
         let shape = output_tensor.shape(); // [1, seq_len, 384]
         let hidden_size = shape[2];
@@ -79,7 +84,7 @@ impl CognitionService {
             .cloned()
             .collect();
 
-        // Normalize (Cosine Similarity requires normalized vectors)
+        // Normalize
         let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
         let normalized_embedding = embedding.iter().map(|x| x / norm).collect();
 
