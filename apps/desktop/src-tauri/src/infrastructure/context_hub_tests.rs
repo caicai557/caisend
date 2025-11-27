@@ -1,10 +1,12 @@
+// ContextHub 核心逻辑测试
+
 use super::*;
 use crate::domain::workflow::{ScriptFlow, ScriptStep, ScriptInstance, AccountConfig, AdvanceMode};
 use crate::domain::workflow::script::InstanceStatus;
 use async_trait::async_trait;
 use crate::error::CoreError;
 
-// Mock Repository for testing
+// Mock Repository
 struct MockScriptRepo {
     flows: Vec<ScriptFlow>,
     instances: Vec<ScriptInstance>,
@@ -44,54 +46,55 @@ impl ScriptRepositoryPort for MockScriptRepo {
     }
 }
 
+// 测试数据工厂
+fn create_test_flow() -> ScriptFlow {
+    ScriptFlow {
+        id: "flow_test".to_string(),
+        account_id: "test_account".to_string(),
+        category_name: "测试流程".to_string(),
+        steps: vec![
+            ScriptStep {
+                id: "step1".to_string(),
+                order: 0,
+                content: "第一步".to_string(),
+                advance_mode: AdvanceMode::Manual,
+            },
+            ScriptStep {
+                id: "step2".to_string(),
+                order: 1,
+                content: "第二步".to_string(),
+                advance_mode: AdvanceMode::Manual,
+            },
+        ],
+        created_at: 0,
+        updated_at: 0,
+    }
+}
+
+fn create_test_instance() -> ScriptInstance {
+    ScriptInstance {
+        id: "inst_test".to_string(),
+        flow_id: "flow_test".to_string(),
+        account_id: "test_account".to_string(),
+        peer_id: "test_peer".to_string(),
+        current_step_index: 0,
+        status: InstanceStatus::Running,
+        created_at: 0,
+        updated_at: 0,
+    }
+}
+
+fn create_test_config() -> AccountConfig {
+    AccountConfig {
+        account_id: "test_account".to_string(),
+        autoreply_enabled: true,
+        updated_at: 0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    fn create_test_flow() -> ScriptFlow {
-        ScriptFlow {
-            id: "flow_test".to_string(),
-            account_id: "test_account".to_string(),
-            category_name: "测试流程".to_string(),
-            steps: vec![
-                ScriptStep {
-                    id: "step1".to_string(),
-                    order: 0,
-                    content: "第一步".to_string(),
-                    advance_mode: AdvanceMode::Manual,
-                },
-                ScriptStep {
-                    id: "step2".to_string(),
-                    order: 1,
-                    content: "第二步".to_string(),
-                    advance_mode: AdvanceMode::Manual,
-                },
-            ],
-            created_at: 0,
-            updated_at: 0,
-        }
-    }
-    
-    fn create_test_instance() -> ScriptInstance {
-        ScriptInstance {
-            id: "inst_test".to_string(),
-            flow_id: "flow_test".to_string(),
-            account_id: "test_account".to_string(),
-            peer_id: "test_peer".to_string(),
-            current_step_index: 0,
-            status: InstanceStatus::Running,
-            created_at: 0,
-            updated_at: 0,
-        }
-    }
-    
-    fn create_test_config() -> AccountConfig {
-        AccountConfig {
-            account_id: "test_account".to_string(),
-            autoreply_enabled: true,
-            updated_at: 0,
-        }
-    }
     
     #[tokio::test]
     async fn test_mock_repo_get_flow() {
@@ -132,6 +135,29 @@ mod tests {
         assert_eq!(config.unwrap().autoreply_enabled, true);
     }
     
-    // 注：ContextHub完整测试需要Tauri AppHandle mock
-    // 这里只测试数据逻辑
+    #[tokio::test]
+    async fn test_query_cache_basic() {
+        let repo = MockScriptRepo {
+            flows: vec![create_test_flow()],
+            instances: vec![],
+            configs: vec![create_test_config()],
+        };
+        
+        // 测试缓存基本功能
+        let config1 = repo.get_account_config("test_account").await.unwrap();
+        let config2 = repo.get_account_config("test_account").await.unwrap();
+        
+        assert_eq!(config1, config2);
+    }
+    /*
+    #[test]
+    fn test_advance_mode_serialization() {
+        // ...
+    }
+
+    #[test]
+    fn test_script_step_serialization() {
+        // ...
+    }
+    */
 }

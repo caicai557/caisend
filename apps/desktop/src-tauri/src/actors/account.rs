@@ -1,0 +1,109 @@
+use ractor::{Actor, ActorProcessingErr, ActorRef};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use crate::adapters::browser::cdp_adapter::CdpManager;
+use crate::domain::workflow::ScriptStep;
+
+#[derive(Debug, Clone)]
+pub struct AccountConfig {
+    pub account_id: String,
+    pub proxy: Option<String>,
+    pub user_agent: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum AccountMessage {
+    Connect { port: u16 },
+    Disconnect,
+    ExecuteWorkflow { peer_id: String, step: ScriptStep },
+    UpdateConfig(AccountConfig),
+    HealthCheck,
+}
+
+pub struct AccountActor;
+
+pub struct AccountState {
+    pub config: AccountConfig,
+    pub cdp_manager: Arc<CdpManager>,
+    pub is_connected: bool,
+}
+
+#[async_trait::async_trait]
+impl Actor for AccountActor {
+    type Msg = AccountMessage;
+    type State = AccountState;
+    type Arguments = (AccountConfig, Arc<CdpManager>);
+
+    async fn pre_start(
+        &self,
+        _myself: ActorRef<Self::Msg>,
+        (config, cdp_manager): Self::Arguments,
+    ) -> Result<Self::State, ActorProcessingErr> {
+        tracing::info!("[AccountActor] Starting for account {}", config.account_id);
+        Ok(AccountState {
+            config,
+            cdp_manager,
+            is_connected: false,
+        })
+    }
+
+    async fn handle(
+        &self,
+        _myself: ActorRef<Self::Msg>,
+        message: Self::Msg,
+        state: &mut Self::State,
+    ) -> Result<(), ActorProcessingErr> {
+        match message {
+            AccountMessage::Connect { port } => {
+                tracing::info!("[AccountActor] Connecting {} on port {}", state.config.account_id, port);
+                match state.cdp_manager.connect(state.config.account_id.clone(), port).await {
+                    Ok(_) => {
+                        state.is_connected = true;
+                        tracing::info!("[AccountActor] Connected successfully");
+                    }
+                    Err(e) => {
+                        tracing::error!("[AccountActor] Connection failed: {}", e);
+                        // In a real supervisor setup, we might want to crash here or send a failure message
+                        // For now, we just log it.
+                    }
+                }
+            }
+            AccountMessage::Disconnect => {
+                tracing::info!("[AccountActor] Disconnecting {}", state.config.account_id);
+                state.cdp_manager.disconnect(&state.config.account_id).await;
+                state.is_connected = false;
+            }
+            AccountMessage::ExecuteWorkflow { peer_id, step } => {
+                if !state.is_connected {
+                    tracing::warn!("[AccountActor] Cannot execute workflow: Not connected");
+                    return Ok(());
+                }
+                
+                tracing::info!("[AccountActor] Executing step {} for peer {}", step.id, peer_id);
+                match state.cdp_manager.send_message(&state.config.account_id, &peer_id, &step.content).await {
+                    Ok(_) => tracing::info!("[AccountActor] Message sent"),
+                    Err(e) => tracing::error!("[AccountActor] Send failed: {}", e),
+                }
+            }
+            AccountMessage::UpdateConfig(new_config) => {
+                tracing::info!("[AccountActor] Updating config for {}", new_config.account_id);
+                state.config = new_config;
+            }
+            AccountMessage::HealthCheck => {
+                // Simple liveness check
+                tracing::debug!("[AccountActor] Health check for {}", state.config.account_id);
+            }
+        }
+        Ok(())
+    }
+
+    async fn post_stop(
+        &self,
+        _myself: ActorRef<Self::Msg>,
+        state: &mut Self::State,
+    ) -> Result<(), ActorProcessingErr> {
+        tracing::info!("[AccountActor] Stopping {}", state.config.account_id);
+        state.cdp_manager.disconnect(&state.config.account_id).await;
+        Ok(())
+    }
+}

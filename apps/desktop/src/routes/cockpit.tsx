@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import CockpitHUD from '@/components/posend/CockpitHUD'
+import { ToastContainer } from '@/components/ui/ToastContainer'
 import { useEffect } from 'react'
 import { initCockpitListener } from '@/stores/cockpitStore'
 
@@ -22,9 +23,11 @@ function CockpitPage() {
 
     return (
         <div className="h-screen w-full overflow-hidden" style={{
-            WebkitAppRegion: 'drag' as any
+            // @ts-ignore
+            WebkitAppRegion: 'drag'
         }}>
             <CockpitHUD />
+            <ToastContainer />
         </div>
     );
 }

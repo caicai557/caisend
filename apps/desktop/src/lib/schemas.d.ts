@@ -55,18 +55,18 @@ export declare const MessageSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     status: string;
     id: string;
+    content: string;
     created_at: string;
     conversation_id: string;
     sender_id: string;
-    content: string;
     message_type: string;
 }, {
     status: string;
     id: string;
+    content: string;
     created_at: string;
     conversation_id: string;
     sender_id: string;
-    content: string;
     message_type: string;
 }>;
 export type Message = z.infer<typeof MessageSchema>;

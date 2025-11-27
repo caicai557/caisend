@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::domain::ports::ScriptRepositoryPort;
 use crate::infrastructure::ContextHub;
 use crate::domain::workflow::ScriptFlow;
-use crate::domain::workflow::script::InstanceStatus;  // 修正导入路径
+use crate::domain::workflow::script::InstanceStatus;
+use crate::adapters::browser::cdp_adapter::CdpManager;
 
 /// 切换账号自动回复开关
 /// 
@@ -35,7 +36,8 @@ pub async fn execute_and_advance_workflow(
     peer_id: String,
     step_id: String,
     repo: State<'_, Arc<dyn ScriptRepositoryPort>>,
-    // cdp: State<'_, Arc<CdpManager>>,  // TODO: 集成CDP发送
+    hub: State<'_, Arc<ContextHub>>,
+    cdp: State<'_, Arc<CdpManager>>,
 ) -> Result<(), String> {
     tracing::info!(
         "[Command] execute_and_advance: account={}, peer={}, step={}",
@@ -67,10 +69,36 @@ pub async fn execute_and_advance_workflow(
             step.id, step_id
         ));
     }
+
+    // 4. 执行发送 (Via Actor)
+    // Get Supervisor
+    let supervisor = hub.app_handle()
+        .try_state::<ractor::ActorRef<crate::actors::supervisor::SupervisorMessage>>()
+        .ok_or("System Supervisor not found")?
+        .inner()
+        .clone();
+
+    // Get Account Actor
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    supervisor.cast(crate::actors::supervisor::SupervisorMessage::GetAccount(account_id.clone(), tx))
+        .map_err(|e| e.to_string())?;
     
-    // 4. TODO: 执行发送（需要集成CDP）
-    // cdp.send_message(&account_id, &peer_id, &step.content).await?;
-    tracing::info!("[Command] Would send message: {}", step.content);
+    let actor = rx.await
+        .map_err(|e| e.to_string())?
+        .ok_or("Account actor not found (is the account connected?)")?;
+
+    // Send Execute Message
+    // Note: We are using 'cast' (fire and forget) for now as our Message definition doesn't support reply yet.
+    // To strictly wait for result, we would need to update AccountMessage to include a reply channel.
+    // For this MVP step, we will assume success if actor receives it, and rely on logs.
+    // TODO: Update AccountMessage to support Request-Response for ExecuteWorkflow
+    
+    actor.cast(crate::actors::account::AccountMessage::ExecuteWorkflow { 
+        peer_id: peer_id.clone(), 
+        step: step.clone() 
+    }).map_err(|e| e.to_string())?;
+
+    tracing::info!("[Command] 🚀 Instruction sent to Actor: account={}, peer={}", account_id, peer_id);
     
     // 5. 推进状态
     instance.current_step_index += 1;
@@ -87,6 +115,10 @@ pub async fn execute_and_advance_workflow(
     repo.save_instance(&instance)
         .await
         .map_err(|e| e.to_string())?;
+        
+    // 6. 通知HUD更新
+    hub.clear_cache().await;
+    hub.broadcast_update().await;
     
     Ok(())
 }
@@ -127,3 +159,5 @@ pub async fn notify_peer_focus(
     hub.update_active_peer(peer_id).await;
     Ok(())
 }
+
+

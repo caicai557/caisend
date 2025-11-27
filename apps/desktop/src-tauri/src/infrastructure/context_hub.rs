@@ -3,7 +3,7 @@ use tokio::sync::RwLock;
 use tauri::{AppHandle, Emitter};  // Emitter trait for emit()
 use serde::{Serialize, Deserialize};
 use crate::domain::ports::ScriptRepositoryPort;
-use crate::domain::workflow::{ScriptFlow};
+use crate::domain::workflow::{ScriptFlow, ScriptInstance, AccountConfig};
 
 /// 当前活跃上下文（三重焦点感知的核心）
 #[derive(Debug, Clone, Default)]

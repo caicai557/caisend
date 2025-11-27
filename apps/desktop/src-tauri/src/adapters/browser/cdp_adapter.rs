@@ -9,18 +9,23 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 
+use crate::infrastructure::ContextHub;
+use tauri::{AppHandle, Manager};
+
 pub const DEFAULT_WEBVIEW2_CDP_PORT: u16 = 9222;
 
 /// Manages CDP Browser connections for each account
 #[derive(Clone)]
 pub struct CdpManager {
     browsers: Arc<RwLock<HashMap<String, Arc<Browser>>>>,
+    app_handle: AppHandle,
 }
 
 impl CdpManager {
-    pub fn new() -> Self {
+    pub fn new(app_handle: AppHandle) -> Self {
         Self {
             browsers: Arc::new(RwLock::new(HashMap::new())),
+            app_handle,
         }
     }
 
@@ -124,11 +129,21 @@ impl CdpManager {
         // Spawn handler event loop with binding event processing
         let account_clone = account_id.clone();
         let browser_map = self.browsers.clone();
+        let app_handle = self.app_handle.clone(); // Clone for closure
+
         tokio::spawn(async move {
             while let Some(event_result) = handler.next().await {
-                if let Err(e) = event_result {
-                    tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
-                    break;
+                match event_result {
+                    Ok(chromiumoxide::Event::RuntimeBindingCalled(ev)) => {
+                        if ev.name == "teleflowNotify" {
+                             Self::handle_notification(&app_handle, &account_clone, &ev.payload);
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
+                        break;
+                    }
+                    _ => {} // Ignore other events
                 }
             }
             tracing::info!("CDP Handler finished for {}", account_clone);
@@ -146,7 +161,7 @@ impl CdpManager {
 
     /// 🚀 Phase 2.1 + 3.4: Handle direct notification with Priority Scheduling
     /// Priority: WorkflowEngine > RuleEngine
-    fn handle_notification(account_id: &str, payload: &str) {
+    fn handle_notification(app_handle: &AppHandle, account_id: &str, payload: &str) {
         tracing::info!("[Direct Link] Account {}: {}", account_id, payload);
         
         // Parse JSON payload
@@ -193,6 +208,22 @@ impl CdpManager {
                             contact_id,
                             content
                         );
+                    } else if notification.event_type == "PeerFocus" {
+                        let peer_id = notification.payload
+                            .get("peerId")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                            
+                        if !peer_id.is_empty() {
+                            tracing::info!("[CDP] PeerFocus detected: {}", peer_id);
+                            if let Some(hub) = app_handle.try_state::<Arc<ContextHub>>() {
+                                let hub = hub.inner().clone();
+                                tauri::async_runtime::spawn(async move {
+                                    hub.update_active_peer(peer_id).await;
+                                });
+                            }
+                        }
                     }
                 }
                 Err(e) => {
@@ -348,10 +379,49 @@ impl CdpManager {
             account_id, MAX_ATTEMPTS
         ))
     }
-}
 
-impl Default for CdpManager {
-    fn default() -> Self {
-        Self::new()
+    /// 🚀 Phase 5: Real Message Sending via CDP
+    /// 
+    /// Calls the injected `window.teleflowSend` function in the browser.
+    pub async fn send_message(&self, account_id: &str, peer_id: &str, content: &str) -> Result<()> {
+        let browser = self.get_browser(account_id).await
+            .ok_or_else(|| anyhow::anyhow!("Browser not connected for {}", account_id))?;
+            
+        let pages = browser.pages().await
+            .context("Failed to get pages")?;
+            
+        let page = pages.into_iter().next()
+            .ok_or_else(|| anyhow::anyhow!("No active page found"))?;
+            
+        // Escape content for JS string
+        let safe_content = serde_json::to_string(content)?;
+        let safe_peer = serde_json::to_string(peer_id)?;
+        
+        let expression = format!(
+            "window.teleflowSend({}, {})",
+            safe_peer, safe_content
+        );
+        
+        tracing::debug!("[CDP] Executing: {}", expression);
+        
+        let result = page.evaluate(EvaluateParams::builder()
+            .expression(expression)
+            .await_promise(true)
+            .return_by_value(true)
+            .build()
+            .unwrap()
+        ).await.context("Failed to execute teleflowSend")?;
+        
+        // Parse result
+        let result_json = result.value().cloned().unwrap_or(serde_json::Value::Null);
+        
+        if result_json.get("success").and_then(|v| v.as_bool()) == Some(true) {
+            Ok(())
+        } else {
+            let error = result_json.get("error").and_then(|v| v.as_str()).unwrap_or("Unknown JS error");
+            Err(anyhow::anyhow!("JS execution failed: {}", error))
+        }
     }
 }
+
+

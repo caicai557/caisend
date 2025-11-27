@@ -56,9 +56,18 @@ pub fn run() -> anyhow::Result<()> {
                 }
 
                 // Initialize CDP Manager for browser automation
-                let cdp_manager = CdpManager::new();
-                app.manage(cdp_manager);
+                let cdp_manager = CdpManager::new(app.handle().clone());
+                app.manage(cdp_manager.clone()); // Keep managed for backward compat if needed, or just for Supervisor
                 println!("=== CDP MANAGER CREATED ===");
+
+                // 🚀 Phase 1.3: Initialize System Supervisor (The Mirror Bureau)
+                let (supervisor, _) = ractor::Actor::spawn(
+                    Some("system-supervisor".to_string()),
+                    crate::actors::supervisor::SystemSupervisor,
+                    Arc::new(cdp_manager),
+                ).await.expect("Failed to start System Supervisor");
+                app.manage(supervisor);
+                println!("=== SYSTEM SUPERVISOR STARTED ===");
 
                 println!("=== CREATING APP STORE ===");
                 let cold_state = AppStore::<Cold>::new(db_pool.clone());
@@ -213,6 +222,32 @@ pub fn run() -> anyhow::Result<()> {
             });
             println!("=== SETUP COMPLETE ===");
             Ok(())
+        })
+        // ========== 🎯 窗口焦点感知 (Ghost Cockpit - Window Awareness) ==========
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Focused(true) = event {
+                let label = window.label();
+                
+                // 过滤掉 HUD 窗口和主窗口,只关注账号窗口
+                if label != "hud_overlay" && label != "main" {
+                    // 提取 account_id
+                    let account_id = if label.starts_with("account-") {
+                        label.strip_prefix("account-").unwrap_or(label).to_string()
+                    } else {
+                        label.to_string()
+                    };
+                    
+                    tracing::info!("[WindowFocus] Account window focused: {}", account_id);
+                    
+                    // 获取 ContextHub 并更新活跃账号
+                    if let Some(hub) = window.try_state::<Arc<ContextHub>>() {
+                        let hub = hub.inner().clone();
+                        tauri::async_runtime::spawn(async move {
+                            hub.update_active_account(account_id).await;
+                        });
+                    }
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::get_system_info,

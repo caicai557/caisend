@@ -1,0 +1,2 @@
+export declare const Route: import("@tanstack/router-core").Route<import("@tanstack/router-core").Register, any, any, any, any, any, undefined, import("@tanstack/router-core").ResolveParams<any>, import("@tanstack/router-core").AnyContext, import("@tanstack/router-core").AnyContext, import("@tanstack/router-core").AnyContext, {}, undefined, unknown, unknown, unknown, unknown, undefined>;
+//# sourceMappingURL=dashboard.d.ts.map

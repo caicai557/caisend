@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 // ========== 类型定义 ==========
 
-interface AdvanceMode {
+export interface AdvanceMode {
     type: 'manual' | 'wait_for_reply' | 'auto_advance';
     delay_ms?: number;
     condition?: {
@@ -12,7 +12,7 @@ interface AdvanceMode {
     timeout_ms?: number;
 }
 
-interface ScriptStep {
+export interface ScriptStep {
     id: string;
     order: number;
     content: string;
