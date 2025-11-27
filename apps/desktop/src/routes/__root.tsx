@@ -1,9 +1,23 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
+import { createRootRoute, Outlet, useMatches } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { Sidebar } from '@/components/layout/sidebar'
 
-export const Route = createRootRoute({
-    component: () => (
+function RootComponent() {
+    const matches = useMatches()
+    const isIndex = matches.some(m => m.routeId === '/')
+
+    if (isIndex) {
+        // 首页使用自己的布局，不显示侧边栏
+        return (
+            <>
+                <Outlet />
+                <TanStackRouterDevtools />
+            </>
+        )
+    }
+
+    // 其他页面使用侧边栏布局
+    return (
         <div className="flex h-screen w-full bg-[var(--bg-void)] text-[var(--text-primary)] overflow-hidden">
             <Sidebar />
             <main className="flex-1 overflow-auto relative">
@@ -18,6 +32,18 @@ export const Route = createRootRoute({
                 </div>
             </main>
             <TanStackRouterDevtools />
+        </div>
+    )
+}
+
+export const Route = createRootRoute({
+    component: RootComponent,
+    notFoundComponent: () => (
+        <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+                <h1 className="text-4xl font-bold mb-4">404</h1>
+                <p className="text-zinc-400">页面未找到</p>
+            </div>
         </div>
     ),
 })

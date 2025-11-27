@@ -38,6 +38,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.0.0
         version: 1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@tanstack/react-router-devtools':
+        specifier: ^1.139.7
+        version: 1.139.7(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(solid-js@1.9.10)(tsx@4.20.6)
       '@tauri-apps/api':
         specifier: ^2.0.0-beta
         version: 2.9.0
@@ -75,9 +78,6 @@ importers:
         specifier: ^4.5.7
         version: 4.5.7(@types/react@18.3.27)(react@18.3.1)
     devDependencies:
-      '@tanstack/router-devtools':
-        specifier: ^1.139.3
-        version: 1.139.3(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(solid-js@1.9.10)(tsx@4.20.6)
       '@tanstack/router-vite-plugin':
         specifier: ^1.139.3
         version: 1.139.3(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@5.4.21(@types/node@24.10.1))
@@ -1167,12 +1167,12 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@tanstack/react-router-devtools@1.139.3':
-    resolution: {integrity: sha512-taH/Zklh3TOEaGXo3Nmck67J6Cgj7LDY9E7pIwncocWXt/6s91kYKHsiSkCWfAbZ/bLIrj4YWu21ObnvU0PlHw==}
+  '@tanstack/react-router-devtools@1.139.7':
+    resolution: {integrity: sha512-ySuFWfR5mHtbs/le5SUb56OxCWTZskwynPp6E9qnyDgB4vX6P7OJDqdgv7rqiorYNjFmAaywraaVZGQ8WuB4+g==}
     engines: {node: '>=12'}
     peerDependencies:
-      '@tanstack/react-router': ^1.139.3
-      '@tanstack/router-core': ^1.139.3
+      '@tanstack/react-router': ^1.139.7
+      '@tanstack/router-core': ^1.139.7
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
     peerDependenciesMeta:
@@ -1200,25 +1200,13 @@ packages:
     resolution: {integrity: sha512-j3v1e739jmozBdtnmA45xHQHjCC2aKqBtfkMT3t2ZPijVrueaVP6qNRIAWmDK4ZSqd67TF5wP8vyqeTShJsEQQ==}
     engines: {node: '>=12'}
 
-  '@tanstack/router-devtools-core@1.139.3':
-    resolution: {integrity: sha512-dqjL9QroVORlLC283uwwMB7CLMWAfn9rgKwwcXdaSQlPcuSVScFzyFI4Iz7l6A4jGC0ALtNPQoHJ52+mvTzY5Q==}
+  '@tanstack/router-devtools-core@1.139.7':
+    resolution: {integrity: sha512-Tx6+rCyjthlH7KS9Jz6YdT2KQ6rZQ66F+XJOj7Rel8zGAvyqx8USzcqTRvC+QjaU1jIJq+mNPWpMdKkkxPSOVA==}
     engines: {node: '>=12'}
     peerDependencies:
-      '@tanstack/router-core': ^1.139.3
+      '@tanstack/router-core': ^1.139.7
       csstype: ^3.0.10
       solid-js: '>=1.9.5'
-    peerDependenciesMeta:
-      csstype:
-        optional: true
-
-  '@tanstack/router-devtools@1.139.3':
-    resolution: {integrity: sha512-cJ8mQNMm/4nMFDwQxSMLWP4pk9kAXLl/SkRQqOwEbhzO35enSo7r2UdcM0uTwNEEKGjdjmNrNanFzDIZJnFHCg==}
-    engines: {node: '>=12'}
-    peerDependencies:
-      '@tanstack/react-router': ^1.139.3
-      csstype: ^3.0.10
-      react: '>=18.0.0 || >=19.0.0'
-      react-dom: '>=18.0.0 || >=19.0.0'
     peerDependenciesMeta:
       csstype:
         optional: true
@@ -4046,10 +4034,10 @@ snapshots:
       '@tanstack/query-core': 5.90.10
       react: 18.3.1
 
-  '@tanstack/react-router-devtools@1.139.3(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(solid-js@1.9.10)(tsx@4.20.6)':
+  '@tanstack/react-router-devtools@1.139.7(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(solid-js@1.9.10)(tsx@4.20.6)':
     dependencies:
       '@tanstack/react-router': 1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tanstack/router-devtools-core': 1.139.3(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(solid-js@1.9.10)(tsx@4.20.6)
+      '@tanstack/router-devtools-core': 1.139.7(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(solid-js@1.9.10)(tsx@4.20.6)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       vite: 7.2.4(@types/node@24.10.1)(jiti@1.21.7)(tsx@4.20.6)
@@ -4108,7 +4096,7 @@ snapshots:
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
-  '@tanstack/router-devtools-core@1.139.3(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(solid-js@1.9.10)(tsx@4.20.6)':
+  '@tanstack/router-devtools-core@1.139.7(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(solid-js@1.9.10)(tsx@4.20.6)':
     dependencies:
       '@tanstack/router-core': 1.139.3
       clsx: 2.1.1
@@ -4125,32 +4113,6 @@ snapshots:
       - lightningcss
       - sass
       - sass-embedded
-      - stylus
-      - sugarss
-      - terser
-      - tsx
-      - yaml
-
-  '@tanstack/router-devtools@1.139.3(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(solid-js@1.9.10)(tsx@4.20.6)':
-    dependencies:
-      '@tanstack/react-router': 1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@tanstack/react-router-devtools': 1.139.3(@tanstack/react-router@1.139.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@tanstack/router-core@1.139.3)(@types/node@24.10.1)(csstype@3.2.3)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(solid-js@1.9.10)(tsx@4.20.6)
-      clsx: 2.1.1
-      goober: 2.1.18(csstype@3.2.3)
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      vite: 7.2.4(@types/node@24.10.1)(jiti@1.21.7)(tsx@4.20.6)
-    optionalDependencies:
-      csstype: 3.2.3
-    transitivePeerDependencies:
-      - '@tanstack/router-core'
-      - '@types/node'
-      - jiti
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - solid-js
       - stylus
       - sugarss
       - terser

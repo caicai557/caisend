@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+// Trigger rebuild
 import { useState, useEffect } from 'react'
 import { ipcGetSystemInfo, ipcListAccounts, ipcSendMessage } from '@/lib/ipc'
 import { useMutation, useQuery } from '@tanstack/react-query'
