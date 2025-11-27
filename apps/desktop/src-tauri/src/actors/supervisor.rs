@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::adapters::browser::cdp_adapter::CdpManager;
 use super::account::{AccountActor, AccountConfig, AccountMessage};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum SupervisorMessage {
     SpawnAccount { config: AccountConfig },
     GetAccount(String, tokio::sync::oneshot::Sender<Option<ActorRef<AccountMessage>>>),
@@ -19,7 +19,9 @@ pub struct SupervisorState {
     pub cdp_manager: Arc<CdpManager>,
 }
 
-#[async_trait::async_trait]
+// use async_trait::async_trait;
+
+// #[async_trait]
 impl Actor for SystemSupervisor {
     type Msg = SupervisorMessage;
     type State = SupervisorState;

@@ -1,4 +1,5 @@
 pub mod actuator;
+pub mod actors;
 pub mod adapters;
 pub mod commands;
 pub mod domain;
@@ -28,7 +29,7 @@ pub fn run() -> anyhow::Result<()> {
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             println!("=== SETUP START ===");
-            tauri::async_runtime::block_on(async {
+            let _ = tauri::async_runtime::block_on(async {
                 println!("=== ASYNC BLOCK START ===");
                 println!("=== DB INIT START ===");
                 let db_url = "sqlite://accounts.db";

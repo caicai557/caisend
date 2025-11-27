@@ -1,10 +1,10 @@
-use tauri::State;
+use tauri::{State, Manager};
 use std::sync::Arc;
 use crate::domain::ports::ScriptRepositoryPort;
 use crate::infrastructure::ContextHub;
 use crate::domain::workflow::ScriptFlow;
 use crate::domain::workflow::script::InstanceStatus;
-use crate::adapters::browser::cdp_adapter::CdpManager;
+// use crate::adapters::browser::cdp_adapter::CdpManager;
 
 /// 切换账号自动回复开关
 /// 
@@ -72,8 +72,7 @@ pub async fn execute_and_advance_workflow(
     // 4. 执行发送 (Via Actor)
     // Get Supervisor
     let supervisor = hub.app_handle()
-        .try_state::<ractor::ActorRef<crate::actors::supervisor::SupervisorMessage>>()
-        .ok_or("System Supervisor not found")?
+        .state::<ractor::ActorRef<crate::actors::supervisor::SupervisorMessage>>()
         .inner()
         .clone();
 
@@ -87,11 +86,6 @@ pub async fn execute_and_advance_workflow(
         .ok_or("Account actor not found (is the account connected?)")?;
 
     // Send Execute Message
-    // Note: We are using 'cast' (fire and forget) for now as our Message definition doesn't support reply yet.
-    // To strictly wait for result, we would need to update AccountMessage to include a reply channel.
-    // For this MVP step, we will assume success if actor receives it, and rely on logs.
-    // TODO: Update AccountMessage to support Request-Response for ExecuteWorkflow
-    
     actor.cast(crate::actors::account::AccountMessage::ExecuteWorkflow { 
         peer_id: peer_id.clone(), 
         step: step.clone() 
@@ -158,5 +152,3 @@ pub async fn notify_peer_focus(
     hub.update_active_peer(peer_id).await;
     Ok(())
 }
-
-

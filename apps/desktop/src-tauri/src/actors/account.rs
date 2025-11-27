@@ -1,5 +1,5 @@
 use ractor::{Actor, ActorProcessingErr, ActorRef};
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use crate::adapters::browser::cdp_adapter::CdpManager;
 use crate::domain::workflow::ScriptStep;
@@ -31,7 +31,9 @@ pub struct AccountState {
     pub circadian: CircadianRhythm,
 }
 
-#[async_trait::async_trait]
+// use async_trait::async_trait;
+
+// #[async_trait]
 impl Actor for AccountActor {
     type Msg = AccountMessage;
     type State = AccountState;

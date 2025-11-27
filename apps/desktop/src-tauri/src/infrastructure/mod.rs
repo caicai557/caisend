@@ -1,6 +1,8 @@
 pub mod checkpointer;
 pub mod dispatcher;
 pub mod context_hub;  // 幽灵座舱中枢
+pub mod persistence;
+pub mod ghost;
 
 #[cfg(test)]
 mod context_hub_tests;

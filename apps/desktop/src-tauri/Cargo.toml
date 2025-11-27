@@ -64,3 +64,6 @@ codegen-units = 1
 panic = "abort"
 strip = true
 opt-level = "z" # Optimize for size (or "3" for speed)
+
+[patch.crates-io]
+esaxx-rs = { path = "vendor/esaxx-rs" }

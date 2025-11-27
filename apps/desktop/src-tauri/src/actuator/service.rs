@@ -9,6 +9,7 @@ use std::time::Duration;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
+#[allow(dead_code)]
 const MAX_RETRIES: usize = 2; // bounded retries for click/typing
 
 /// Get the active page from the browser instance

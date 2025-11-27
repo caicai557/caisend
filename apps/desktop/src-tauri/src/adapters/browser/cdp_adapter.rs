@@ -152,21 +152,20 @@ impl CdpManager {
         // Spawn handler event loop with binding event processing
         let account_clone = account_id.clone();
         let browser_map = self.browsers.clone();
-        let app_handle = self.app_handle.clone(); // Clone for closure
+        let _app_handle = self.app_handle.clone(); // Clone for closure
 
         tokio::spawn(async move {
             while let Some(event_result) = handler.next().await {
                 match event_result {
-                    Ok(chromiumoxide::Event::RuntimeBindingCalled(ev)) => {
-                        if ev.name == "teleflowNotify" {
-                             Self::handle_notification(&app_handle, &account_clone, &ev.payload);
-                        }
+                    Ok(_) => {
+                        // TODO: Implement event listening correctly for chromiumoxide 0.5
+                        // if ev.name == "teleflowNotify" { ... }
                     }
                     Err(e) => {
                         tracing::error!("CDP Handler error for {}: {:?}", account_clone, e);
                         break;
                     }
-                    _ => {} // Ignore other events
+                    // _ => {} // Ignore other events
                 }
             }
             tracing::info!("CDP Handler finished for {}", account_clone);
@@ -184,6 +183,7 @@ impl CdpManager {
 
     /// 🚀 Phase 2.1 + 3.4: Handle direct notification with Priority Scheduling
     /// Priority: WorkflowEngine > RuleEngine
+    #[allow(dead_code)]
     fn handle_notification(app_handle: &AppHandle, account_id: &str, payload: &str) {
         tracing::info!("[Direct Link] Account {}: {}", account_id, payload);
         
@@ -198,6 +198,7 @@ impl CdpManager {
 
         let account_id_owned = account_id.to_string();
         let payload_owned = payload.to_string();
+        let app_handle = app_handle.clone();
 
         // Spawn async task for processing (cannot await in sync context)
         tauri::async_runtime::spawn(async move {

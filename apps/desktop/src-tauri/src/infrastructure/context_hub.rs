@@ -52,6 +52,10 @@ impl ContextHub {
             app_handle,
         }
     }
+
+    pub fn app_handle(&self) -> &AppHandle {
+        &self.app_handle
+    }
     
     /// 窗口感知：更新活跃账号
     /// 

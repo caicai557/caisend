@@ -7,8 +7,8 @@ use ort::session::Session;
 use ort::value::Value;
 
 pub struct CognitionService {
-    session: Session,
-    tokenizer: Tokenizer,
+    _session: Session,
+    _tokenizer: Tokenizer,
 }
 
 impl CognitionService {
@@ -23,8 +23,8 @@ impl CognitionService {
             .commit_from_file(model_path)?;
 
         Ok(Self {
-            session,
-            tokenizer,
+            _session: session,
+            _tokenizer: tokenizer,
         })
     }
 
