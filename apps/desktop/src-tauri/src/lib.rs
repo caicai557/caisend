@@ -274,6 +274,10 @@ pub fn run() -> anyhow::Result<()> {
             commands::ghost_demo::ghost_cockpit_demo,
             commands::ghost_demo::list_all_flows,
             commands::ghost_demo::reset_demo_instance,
+            // 🔐【Telegram 登录】
+            commands::telegram_login::telegram_open_login,
+            commands::telegram_login::telegram_input_phone,
+            commands::telegram_login::telegram_check_code_status,
         ])
         .run(tauri::generate_context!())
         .context("Error while running Tauri application")?;
