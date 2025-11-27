@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS workflow_definitions (
     FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
+-- 兼容旧表：如果 workflow_definitions 已存在（早期版本没有 account_id/definition 列），补充缺失字段
+ALTER TABLE workflow_definitions ADD COLUMN IF NOT EXISTS account_id TEXT;
+ALTER TABLE workflow_definitions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE workflow_definitions ADD COLUMN IF NOT EXISTS definition JSON;
+
 -- 工作流实例表 (Runtime State - 检查点核心)
 CREATE TABLE IF NOT EXISTS workflow_instances (
     id TEXT PRIMARY KEY NOT NULL,
@@ -28,6 +33,14 @@ CREATE TABLE IF NOT EXISTS workflow_instances (
     FOREIGN KEY(workflow_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE,
     FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
+
+-- 兼容旧表：如果 workflow_instances 已存在（早期版本缺少 account_id 等列），补充缺失字段
+ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS account_id TEXT;
+ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS workflow_id TEXT;
+ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS current_step_id TEXT;
+ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS context JSON;
+ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS started_at TEXT DEFAULT (datetime('now'));
+ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS completed_at TEXT;
 
 -- 工作流执行日志 (Audit Trail)
 CREATE TABLE IF NOT EXISTS workflow_execution_log (
