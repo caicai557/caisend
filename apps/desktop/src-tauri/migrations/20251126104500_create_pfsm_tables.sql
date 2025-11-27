@@ -14,9 +14,8 @@ CREATE TABLE IF NOT EXISTS workflow_definitions (
 );
 
 -- 兼容旧表：如果 workflow_definitions 已存在（早期版本没有 account_id/definition 列），补充缺失字段
-ALTER TABLE workflow_definitions ADD COLUMN IF NOT EXISTS account_id TEXT;
-ALTER TABLE workflow_definitions ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE workflow_definitions ADD COLUMN IF NOT EXISTS definition JSON;
+ALTER TABLE workflow_definitions ADD COLUMN account_id TEXT;
+ALTER TABLE workflow_definitions ADD COLUMN definition JSON;
 
 -- 工作流实例表 (Runtime State - 检查点核心)
 CREATE TABLE IF NOT EXISTS workflow_instances (
@@ -35,12 +34,12 @@ CREATE TABLE IF NOT EXISTS workflow_instances (
 );
 
 -- 兼容旧表：如果 workflow_instances 已存在（早期版本缺少 account_id 等列），补充缺失字段
-ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS account_id TEXT;
-ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS workflow_id TEXT;
-ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS current_step_id TEXT;
-ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS context JSON;
-ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS started_at TEXT DEFAULT (datetime('now'));
-ALTER TABLE workflow_instances ADD COLUMN IF NOT EXISTS completed_at TEXT;
+ALTER TABLE workflow_instances ADD COLUMN account_id TEXT;
+ALTER TABLE workflow_instances ADD COLUMN workflow_id TEXT;
+ALTER TABLE workflow_instances ADD COLUMN current_step_id TEXT;
+ALTER TABLE workflow_instances ADD COLUMN context JSON;
+ALTER TABLE workflow_instances ADD COLUMN started_at TEXT DEFAULT (datetime('now'));
+ALTER TABLE workflow_instances ADD COLUMN completed_at TEXT;
 
 -- 工作流执行日志 (Audit Trail)
 CREATE TABLE IF NOT EXISTS workflow_execution_log (
