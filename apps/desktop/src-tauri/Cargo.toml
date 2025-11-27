@@ -38,6 +38,7 @@ rand_distr = "0.5.1"
 notify = "6.1"
 rmp-serde = "1.1"
 ractor = "0.15.9"
+async-recursion = "1.1.1"
 
 [lib]
 name = "teleflow_desktop_lib"

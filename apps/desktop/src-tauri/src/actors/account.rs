@@ -5,6 +5,7 @@ use crate::adapters::browser::cdp_adapter::CdpManager;
 use crate::domain::workflow::ScriptStep;
 use crate::infrastructure::ghost::circadian::CircadianRhythm;
 use crate::infrastructure::ghost::biomechanics::HumanInput;
+use crate::domain::decision::pbt_engine::PbtEngine;
 
 #[derive(Debug, Clone)]
 pub struct AccountConfig {
@@ -20,6 +21,7 @@ pub enum AccountMessage {
     ExecuteWorkflow { peer_id: String, step: ScriptStep },
     UpdateConfig(AccountConfig),
     HealthCheck,
+    Tick, // PBT Tick
 }
 
 pub struct AccountActor;
@@ -27,6 +29,7 @@ pub struct AccountActor;
 pub struct AccountState {
     pub config: AccountConfig,
     pub cdp_manager: Arc<CdpManager>,
+    pub pbt_engine: Arc<PbtEngine>,
     pub is_connected: bool,
     pub circadian: CircadianRhythm,
 }
@@ -37,17 +40,31 @@ pub struct AccountState {
 impl Actor for AccountActor {
     type Msg = AccountMessage;
     type State = AccountState;
-    type Arguments = (AccountConfig, Arc<CdpManager>);
+    type Arguments = (AccountConfig, Arc<CdpManager>, Arc<PbtEngine>);
 
     async fn pre_start(
         &self,
-        _myself: ActorRef<Self::Msg>,
-        (config, cdp_manager): Self::Arguments,
+        myself: ActorRef<Self::Msg>,
+        (config, cdp_manager, pbt_engine): Self::Arguments,
     ) -> Result<Self::State, ActorProcessingErr> {
         tracing::info!("[AccountActor] Starting for account {}", config.account_id);
+        
+        // Start PBT Tick Loop
+        let myself_clone = myself.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                if let Err(e) = myself_clone.cast(AccountMessage::Tick) {
+                    tracing::warn!("[AccountActor] Failed to send Tick: {}", e);
+                    break;
+                }
+            }
+        });
+
         Ok(AccountState {
             config,
             cdp_manager,
+            pbt_engine,
             is_connected: false,
             circadian: CircadianRhythm::default(), // TODO: Load from config
         })
@@ -115,6 +132,14 @@ impl Actor for AccountActor {
             }
             AccountMessage::HealthCheck => {
                 tracing::debug!("[AccountActor] Health check for {}", state.config.account_id);
+            }
+            AccountMessage::Tick => {
+                if state.is_connected {
+                    // TODO: Get root node from DB or cache
+                    // For now, we skip ticking if no tree is loaded
+                    // state.pbt_engine.tick(&state.config.account_id, &root_node).await?;
+                    tracing::debug!("[AccountActor] Tick received (PBT not fully connected yet)");
+                }
             }
         }
         Ok(())

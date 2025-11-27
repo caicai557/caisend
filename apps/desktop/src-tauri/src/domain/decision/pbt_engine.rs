@@ -13,6 +13,8 @@ pub struct PbtEngine {
 use futures::future::BoxFuture;
 use futures::FutureExt;
 
+use async_recursion::async_recursion;
+
 impl PbtEngine {
     pub fn new(context_hub: Arc<ContextHub>) -> Self {
         Self {
@@ -62,44 +64,74 @@ impl PbtEngine {
         Ok(status)
     }
 
-    fn execute_node<'a>(&'a self, node: &'a BehaviorNode, state: &'a mut TreeState) -> BoxFuture<'a, Result<NodeStatus>> {
-        async move {
-            match node {
-                BehaviorNode::Selector { children, .. } => {
-                    for child in children {
-                        let status = self.execute_node(child, state).await?;
-                        if status == NodeStatus::Success {
-                            return Ok(NodeStatus::Success);
-                        }
-                        if status == NodeStatus::Running {
-                            return Ok(NodeStatus::Running);
-                        }
+    #[async_recursion]
+    async fn execute_node(&self, node: &BehaviorNode, state: &mut TreeState) -> Result<NodeStatus> {
+        match node {
+            BehaviorNode::Selector { children, .. } => {
+                for child in children {
+                    let status = self.execute_node(child, state).await?;
+                    if status == NodeStatus::Success {
+                        return Ok(NodeStatus::Success);
                     }
-                    Ok(NodeStatus::Failure)
-                }
-                BehaviorNode::Sequence { children, .. } => {
-                    for child in children {
-                        let status = self.execute_node(child, state).await?;
-                        if status == NodeStatus::Failure {
-                            return Ok(NodeStatus::Failure);
-                        }
-                        if status == NodeStatus::Running {
-                            return Ok(NodeStatus::Running);
-                        }
+                    if status == NodeStatus::Running {
+                        return Ok(NodeStatus::Running);
                     }
-                    Ok(NodeStatus::Success)
                 }
-                BehaviorNode::Action { action_type, params, .. } => {
-                    tracing::info!("Executing action: {} {:?}", action_type, params);
-                    // TODO: Dispatch to ContextHub or ActionHandler
-                    Ok(NodeStatus::Success)
-                }
-                BehaviorNode::Condition { condition_type, params, .. } => {
-                    tracing::info!("Checking condition: {} {:?}", condition_type, params);
-                    // TODO: Check via ContextHub
-                    Ok(NodeStatus::Success)
-                }
+                Ok(NodeStatus::Failure)
             }
-        }.boxed()
+            BehaviorNode::Sequence { children, .. } => {
+                for child in children {
+                    let status = self.execute_node(child, state).await?;
+                    if status == NodeStatus::Failure {
+                        return Ok(NodeStatus::Failure);
+                    }
+                    if status == NodeStatus::Running {
+                        return Ok(NodeStatus::Running);
+                    }
+                }
+                Ok(NodeStatus::Success)
+            }
+            BehaviorNode::Action { action_type, params, .. } => {
+                tracing::info!("Executing action: {} {:?}", action_type, params);
+                // TODO: Dispatch to ContextHub or ActionHandler
+                Ok(NodeStatus::Success)
+            }
+            BehaviorNode::Condition { condition_type, params, .. } => {
+                tracing::info!("Checking condition: {} {:?}", condition_type, params);
+                // TODO: Check via ContextHub
+                Ok(NodeStatus::Success)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_behavior_node_structure() {
+        let node = BehaviorNode::Sequence {
+            id: "seq1".to_string(),
+            children: vec![
+                BehaviorNode::Action {
+                    id: "act1".to_string(),
+                    action_type: "log".to_string(),
+                    params: HashMap::new(),
+                },
+                BehaviorNode::Condition {
+                    id: "cond1".to_string(),
+                    condition_type: "is_true".to_string(),
+                    params: HashMap::new(),
+                },
+            ],
+        };
+
+        if let BehaviorNode::Sequence { children, .. } = node {
+            assert_eq!(children.len(), 2);
+        } else {
+            panic!("Wrong node type");
+        }
     }
 }

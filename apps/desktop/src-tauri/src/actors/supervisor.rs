@@ -67,7 +67,7 @@ impl Actor for SystemSupervisor {
                 let (actor_ref, _) = Actor::spawn_linked(
                     Some(format!("account-{}", account_id)),
                     AccountActor,
-                    (config, state.cdp_manager.clone()),
+                    (config, state.cdp_manager.clone(), state.pbt_engine.clone()),
                     myself.get_cell(),
                 ).await?;
 
@@ -115,7 +115,7 @@ impl Actor for SystemSupervisor {
                         match Actor::spawn_linked(
                             Some(format!("account-{}", account_id)),
                             AccountActor,
-                            (config.clone(), state.cdp_manager.clone()),
+                            (config.clone(), state.cdp_manager.clone(), state.pbt_engine.clone()),
                             myself.get_cell(),
                         ).await {
                             Ok((new_actor, _)) => {
