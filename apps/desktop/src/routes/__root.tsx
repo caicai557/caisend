@@ -1,10 +1,10 @@
-import { createRootRoute, Outlet, useMatches } from '@tanstack/react-router'
+import { createRootRoute, Outlet, useLocation } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { Sidebar } from '@/components/layout/sidebar'
 
 function RootComponent() {
-    const matches = useMatches()
-    const isIndex = matches.some(m => m.routeId === '/')
+    const location = useLocation()
+    const isIndex = location.pathname === '/'
 
     if (isIndex) {
         // 首页使用自己的布局，不显示侧边栏
