@@ -5,9 +5,11 @@ use std::str::FromStr;
 pub mod mvp_repo;
 pub mod workflow_repo;
 pub mod script_repository;  // 幽灵座舱
+pub mod behavior_tree_repo;
 
 pub use mvp_repo::MvpRepository;
 pub use script_repository::SqliteScriptRepository;
+pub use behavior_tree_repo::BehaviorTreeRepository;
 
 pub async fn init_db(database_url: &str) -> Result<SqlitePool, CoreError> {
     let mut options = SqliteConnectOptions::from_str(database_url)?

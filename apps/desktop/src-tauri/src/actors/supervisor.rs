@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use crate::adapters::browser::cdp_adapter::CdpManager;
 use super::account::{AccountActor, AccountConfig, AccountMessage};
-
-use crate::domain::decision::pbt_engine::PbtEngine;
+use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
+use ractor::async_trait as async_trait;
 
 #[derive(Debug)]
 pub enum SupervisorMessage {
@@ -19,28 +19,26 @@ pub struct SupervisorState {
     pub accounts: HashMap<String, ActorRef<AccountMessage>>,
     pub configs: HashMap<String, AccountConfig>,
     pub cdp_manager: Arc<CdpManager>,
-    pub pbt_engine: Arc<PbtEngine>,
+    pub bt_repo: Arc<BehaviorTreeRepository>,
 }
 
-// use async_trait::async_trait;
-
-// #[async_trait]
+#[async_trait]
 impl Actor for SystemSupervisor {
     type Msg = SupervisorMessage;
     type State = SupervisorState;
-    type Arguments = (Arc<CdpManager>, Arc<PbtEngine>);
+    type Arguments = (Arc<CdpManager>, Arc<BehaviorTreeRepository>);
 
     async fn pre_start(
         &self,
         _myself: ActorRef<Self::Msg>,
-        (cdp_manager, pbt_engine): Self::Arguments,
+        (cdp_manager, bt_repo): Self::Arguments,
     ) -> Result<Self::State, ActorProcessingErr> {
         tracing::info!("[SystemSupervisor] Starting supervisor");
         Ok(SupervisorState {
             accounts: HashMap::new(),
             configs: HashMap::new(),
             cdp_manager,
-            pbt_engine,
+            bt_repo,
         })
     }
 
@@ -67,7 +65,7 @@ impl Actor for SystemSupervisor {
                 let (actor_ref, _) = Actor::spawn_linked(
                     Some(format!("account-{}", account_id)),
                     AccountActor,
-                    (config, state.cdp_manager.clone(), state.pbt_engine.clone()),
+                    (config, state.cdp_manager.clone(), state.bt_repo.clone()),
                     myself.get_cell(),
                 ).await?;
 
@@ -115,7 +113,7 @@ impl Actor for SystemSupervisor {
                         match Actor::spawn_linked(
                             Some(format!("account-{}", account_id)),
                             AccountActor,
-                            (config.clone(), state.cdp_manager.clone(), state.pbt_engine.clone()),
+                            (config.clone(), state.cdp_manager.clone(), state.bt_repo.clone()),
                             myself.get_cell(),
                         ).await {
                             Ok((new_actor, _)) => {

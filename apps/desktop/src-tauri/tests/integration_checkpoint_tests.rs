@@ -1,7 +1,7 @@
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use tokio;
 use std::sync::Arc;
-use crate::domain::workflow::models::{WorkflowInstance, WorkflowStatus};
+use teleflow_desktop_lib::domain::workflow::models::{WorkflowInstance, WorkflowStatus};
 use uuid::Uuid;
 
 /// Helper to create an in-memory SQLite pool for testing

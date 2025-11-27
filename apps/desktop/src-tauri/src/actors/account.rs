@@ -5,7 +5,10 @@ use crate::adapters::browser::cdp_adapter::CdpManager;
 use crate::domain::workflow::ScriptStep;
 use crate::infrastructure::ghost::circadian::CircadianRhythm;
 use crate::infrastructure::ghost::biomechanics::HumanInput;
-use crate::domain::decision::pbt_engine::PbtEngine;
+use crate::domain::behavior_tree::engine::{BehaviorTreeEngine, ActionContext};
+use crate::domain::behavior_tree::state::NodeStatus;
+use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
+use ractor::async_trait as async_trait;
 
 #[derive(Debug, Clone)]
 pub struct AccountConfig {
@@ -29,23 +32,64 @@ pub struct AccountActor;
 pub struct AccountState {
     pub config: AccountConfig,
     pub cdp_manager: Arc<CdpManager>,
-    pub pbt_engine: Arc<PbtEngine>,
+    pub bt_repo: Arc<BehaviorTreeRepository>,
     pub is_connected: bool,
     pub circadian: CircadianRhythm,
 }
 
-// use async_trait::async_trait;
+struct AccountActionContext {
+    account_id: String,
+    cdp_manager: Arc<CdpManager>,
+}
 
-// #[async_trait]
+#[async_trait::async_trait]
+impl ActionContext for AccountActionContext {
+    async fn execute_action(&self, action_type: &str, params: &serde_json::Value) -> anyhow::Result<NodeStatus> {
+        tracing::info!("[AccountActionContext] Executing action: {} for {}", action_type, self.account_id);
+        
+        match action_type {
+            "send_message" => {
+                let peer_id = params.get("peer_id").and_then(|v| v.as_str()).unwrap_or("");
+                let content = params.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                
+                if peer_id.is_empty() || content.is_empty() {
+                    tracing::error!("Missing peer_id or content for send_message");
+                    return Ok(NodeStatus::Failure);
+                }
+
+                // 👻 Ghost Protocol: Biomechanics
+                let thinking_delay = HumanInput::get_thinking_delay();
+                tokio::time::sleep(thinking_delay).await;
+                
+                let typing_delay = HumanInput::get_typing_delay() * content.len() as u32;
+                tokio::time::sleep(typing_delay).await;
+
+                match self.cdp_manager.send_message(&self.account_id, peer_id, content).await {
+                    Ok(_) => Ok(NodeStatus::Success),
+                    Err(e) => {
+                        tracing::error!("Failed to send message: {}", e);
+                        Ok(NodeStatus::Failure)
+                    }
+                }
+            }
+            _ => {
+                tracing::warn!("Unknown action type: {}", action_type);
+                Ok(NodeStatus::Failure)
+            }
+        }
+    }
+}
+
+#[async_trait]
 impl Actor for AccountActor {
     type Msg = AccountMessage;
     type State = AccountState;
-    type Arguments = (AccountConfig, Arc<CdpManager>, Arc<PbtEngine>);
+    type Arguments = (AccountConfig, Arc<CdpManager>, Arc<BehaviorTreeRepository>);
 
     async fn pre_start(
         &self,
         myself: ActorRef<Self::Msg>,
-        (config, cdp_manager, pbt_engine): Self::Arguments,
+        (config, cdp_manager, bt_repo): Self::Arguments,
     ) -> Result<Self::State, ActorProcessingErr> {
         tracing::info!("[AccountActor] Starting for account {}", config.account_id);
         
@@ -64,7 +108,7 @@ impl Actor for AccountActor {
         Ok(AccountState {
             config,
             cdp_manager,
-            pbt_engine,
+            bt_repo,
             is_connected: false,
             circadian: CircadianRhythm::default(), // TODO: Load from config
         })
@@ -135,10 +179,31 @@ impl Actor for AccountActor {
             }
             AccountMessage::Tick => {
                 if state.is_connected {
-                    // TODO: Get root node from DB or cache
-                    // For now, we skip ticking if no tree is loaded
-                    // state.pbt_engine.tick(&state.config.account_id, &root_node).await?;
-                    tracing::debug!("[AccountActor] Tick received (PBT not fully connected yet)");
+                    // 1. Load active instance
+                    if let Ok(Some(mut instance)) = state.bt_repo.get_active_instance_by_account(&state.config.account_id).await {
+                        // 2. Load definition
+                        if let Ok(Some(definition)) = state.bt_repo.get_definition(&instance.definition_id).await {
+                            // 3. Create Context
+                            let context = AccountActionContext {
+                                account_id: state.config.account_id.clone(),
+                                cdp_manager: state.cdp_manager.clone(),
+                            };
+
+                            // 4. Tick
+                            match BehaviorTreeEngine::tick(&mut instance, &definition, &context).await {
+                                Ok(status) => {
+                                    tracing::debug!("[AccountActor] Tick success, status: {:?}", status);
+                                    // 5. Save state
+                                    if let Err(e) = state.bt_repo.save_instance(&instance).await {
+                                        tracing::error!("[AccountActor] Failed to save instance: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::error!("[AccountActor] Tick failed: {}", e);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

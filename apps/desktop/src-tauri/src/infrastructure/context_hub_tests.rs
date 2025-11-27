@@ -3,6 +3,7 @@
 use super::*;
 use crate::domain::workflow::{ScriptFlow, ScriptStep, ScriptInstance, AccountConfig, AdvanceMode};
 use crate::domain::workflow::script::InstanceStatus;
+use crate::domain::ports::ScriptRepositoryPort;
 use async_trait::async_trait;
 use crate::error::CoreError;
 

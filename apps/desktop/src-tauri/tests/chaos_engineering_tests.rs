@@ -1,5 +1,5 @@
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
-use crate::domain::workflow::models::{WorkflowInstance, WorkflowStatus};
+use teleflow_desktop_lib::domain::workflow::models::{WorkflowInstance, WorkflowStatus};
 use uuid::Uuid;
 use std::panic;
 

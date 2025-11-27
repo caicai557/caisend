@@ -71,17 +71,14 @@ pub fn run() -> anyhow::Result<()> {
                 app.manage(context_hub.clone());
                 println!("=== GHOST COCKPIT READY ===");
 
-                // Initialize PBT Engine
-                println!("=== INITIALIZING PBT ENGINE ===");
-                let pbt_engine = Arc::new(crate::domain::decision::pbt_engine::PbtEngine::new(context_hub.clone()));
-                app.manage(pbt_engine.clone());
-                println!("=== PBT ENGINE READY ===");
+                // Initialize PBT Repository
+                let bt_repo = Arc::new(crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository::new(db_pool.clone()));
 
                 // Initialize System Supervisor
                 let (supervisor, _) = ractor::Actor::spawn(
                     Some("system-supervisor".to_string()),
                     crate::actors::supervisor::SystemSupervisor,
-                    (Arc::new(cdp_manager), pbt_engine.clone()),
+                    (Arc::new(cdp_manager), bt_repo),
                 ).await.expect("Failed to start System Supervisor");
                 app.manage(supervisor);
                 println!("=== SYSTEM SUPERVISOR STARTED ===");

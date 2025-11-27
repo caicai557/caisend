@@ -1,6 +1,6 @@
 use crate::adapters::browser::cdp_adapter::CdpManager;
 use crate::error::CoreError;
-use tauri::{State, Manager};
+use tauri::Manager;
 use tokio::time::{sleep, Duration};
 
 /// 打开 Telegram Web 并检查登录状态
