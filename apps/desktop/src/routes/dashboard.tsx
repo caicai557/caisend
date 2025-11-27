@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+// Trigger router generation
 import { useEffect } from 'react';
 import { Activity, Users, FileText, Play } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboardStore';

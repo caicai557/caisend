@@ -16,6 +16,8 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
 import { Route as WorkflowsIndexImport } from './routes/workflows/index'
 import { Route as WorkflowsEditorImport } from './routes/workflows/editor'
+import { Route as DashboardImport } from './routes/dashboard'
+import { Route as DashboardImport } from './routes/dashboard'
 
 // Create Virtual Routes
 
@@ -43,6 +45,16 @@ const WorkflowsEditorRoute = WorkflowsEditorImport.update({
     getParentRoute: () => WorkflowsRoute,
 } as any)
 
+const DashboardRoute = DashboardImport.update({
+    path: '/dashboard',
+    getParentRoute: () => rootRoute,
+} as any)
+
+const DashboardRoute = DashboardImport.update({
+    path: '/dashboard',
+    getParentRoute: () => rootRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -63,6 +75,14 @@ declare module '@tanstack/react-router' {
             preLoaderRoute: typeof WorkflowsIndexImport
             parentRoute: typeof WorkflowsImport
         }
+        '/dashboard': {
+            preLoaderRoute: typeof DashboardImport
+            parentRoute: typeof rootRoute
+        }
+        '/dashboard': {
+            preLoaderRoute: typeof DashboardImport
+            parentRoute: typeof rootRoute
+        }
     }
 }
 
@@ -70,6 +90,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren([
     IndexRoute,
+    DashboardRoute,
     WorkflowsRoute.addChildren([WorkflowsEditorRoute, WorkflowsIndexRoute]),
 ])
 
