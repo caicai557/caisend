@@ -43,7 +43,6 @@ pub fn run() -> anyhow::Result<()> {
                 println!("=== DB INIT SUCCESS ===");
                 
                 // Initialize AI Service
-                // Note: In a real app, these paths should be resolved from resources
                 let model_path = "models/bge-small-en-v1.5.onnx";
                 let tokenizer_path = "models/tokenizer.json";
                 match crate::ai::inference::CognitionService::new(model_path, tokenizer_path) {
@@ -56,16 +55,33 @@ pub fn run() -> anyhow::Result<()> {
                     }
                 }
 
-                // Initialize CDP Manager for browser automation
+                // Initialize CDP Manager
                 let cdp_manager = CdpManager::new(app.handle().clone());
-                app.manage(cdp_manager.clone()); // Keep managed for backward compat if needed, or just for Supervisor
+                app.manage(cdp_manager.clone()); 
                 println!("=== CDP MANAGER CREATED ===");
 
-                // 🚀 Phase 1.3: Initialize System Supervisor (The Mirror Bureau)
+                // Initialize Ghost Cockpit
+                println!("=== INITIALIZING GHOST COCKPIT ===");
+                let script_repo = Arc::new(SqliteScriptRepository::new(db_pool.clone()));
+                let context_hub = Arc::new(ContextHub::new(
+                    app.handle().clone(),
+                    script_repo.clone(),
+                ));
+                app.manage(script_repo);
+                app.manage(context_hub.clone());
+                println!("=== GHOST COCKPIT READY ===");
+
+                // Initialize PBT Engine
+                println!("=== INITIALIZING PBT ENGINE ===");
+                let pbt_engine = Arc::new(crate::domain::decision::pbt_engine::PbtEngine::new(context_hub.clone()));
+                app.manage(pbt_engine.clone());
+                println!("=== PBT ENGINE READY ===");
+
+                // Initialize System Supervisor
                 let (supervisor, _) = ractor::Actor::spawn(
                     Some("system-supervisor".to_string()),
                     crate::actors::supervisor::SystemSupervisor,
-                    Arc::new(cdp_manager),
+                    (Arc::new(cdp_manager), pbt_engine.clone()),
                 ).await.expect("Failed to start System Supervisor");
                 app.manage(supervisor);
                 println!("=== SYSTEM SUPERVISOR STARTED ===");
@@ -73,15 +89,8 @@ pub fn run() -> anyhow::Result<()> {
                 println!("=== CREATING APP STORE ===");
                 let cold_state = AppStore::<Cold>::new(db_pool.clone());
                 println!("=== APP STORE CREATED ===");
-                /*
-                // Workflow/bootstrap code can take AppHandle::state::<AppState>()
-                // to avoid wrapping the state in Arc. Example:
-                // let wf_repo = adapters::db::workflow_repo::WorkflowRepository::new(cold_state.pool().clone());
-                // let wf_tracker = domain::workflow::tracker::InstanceStateTracker::new(Arc::new(wf_repo));
-                // let wf_engine = domain::workflow::engine::WorkflowEngine::new(wf_tracker, wf_repo, app.handle().clone());
-                 */
 
-                // Load rules into cache
+                // Load rules
                 println!("=== LOADING RULES ===");
                 let repo = MvpRepository::new(cold_state.pool().clone());
                 let rule_seed = match repo.get_all_rules().await {
@@ -103,19 +112,8 @@ pub fn run() -> anyhow::Result<()> {
                 println!("=== MANAGING APP STATE ===");
                 app.manage(app_state);
                 println!("=== APP STATE MANAGED ===");
-                
-                // ========== 🎯 幽灵座舱初始化  ==========
-                println!("=== INITIALIZING GHOST COCKPIT ===");
-                let script_repo = Arc::new(SqliteScriptRepository::new(db_pool.clone()));
-                let context_hub = Arc::new(ContextHub::new(
-                    app.handle().clone(),
-                    script_repo.clone(),
-                ));
-                app.manage(script_repo);
-                app.manage(context_hub);
-                println!("=== GHOST COCKPIT READY ===");
 
-                // IPC Event Listener -> EventBus + RuleEngine
+                // IPC Event Listener
                 let handle = app.handle().clone();
                 let rule_engine = Arc::new(RuleEngine::new(handle.clone()));
                 app.listen("automation_event", move |event| {
@@ -141,7 +139,6 @@ pub fn run() -> anyhow::Result<()> {
                         }
                     };
 
-                    // account_id: prefer payload.account_id, fallback to default
                     let account_id = parsed
                         .payload
                         .get("account_id")
@@ -184,7 +181,6 @@ pub fn run() -> anyhow::Result<()> {
                                 .event_sender()
                                 .send(AppEvent::NewMessageReceived(message));
 
-                            // Fire rule engine with account_id
                             let re = rule_engine.clone();
                             tauri::async_runtime::spawn(async move {
                                 let _ = re.evaluate_message(&content, &account_id).await;
@@ -224,14 +220,11 @@ pub fn run() -> anyhow::Result<()> {
             println!("=== SETUP COMPLETE ===");
             Ok(())
         })
-        // ========== 🎯 窗口焦点感知 (Ghost Cockpit - Window Awareness) ==========
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Focused(true) = event {
                 let label = window.label();
                 
-                // 过滤掉 HUD 窗口和主窗口,只关注账号窗口
                 if label != "hud_overlay" && label != "main" {
-                    // 提取 account_id
                     let account_id = if label.starts_with("account-") {
                         label.strip_prefix("account-").unwrap_or(label).to_string()
                     } else {
@@ -240,7 +233,6 @@ pub fn run() -> anyhow::Result<()> {
                     
                     tracing::info!("[WindowFocus] Account window focused: {}", account_id);
                     
-                    // 获取 ContextHub 并更新活跃账号
                     if let Some(hub) = window.try_state::<Arc<ContextHub>>() {
                         let hub = hub.inner().clone();
                         tauri::async_runtime::spawn(async move {
@@ -258,23 +250,19 @@ pub fn run() -> anyhow::Result<()> {
             commands::workflow::save_workflow_definition,
             commands::workflow::get_workflow_definition,
             commands::workflow::list_active_instances,
-            // 【帝国统御术】新增 Commands
             commands::workflow::validate_workflow,
             commands::workflow::save_workflow,
             commands::workflow::load_workflows,
             commands::workflow::delete_workflow,
             commands::workflow::toggle_workflow_active,
-            // 🎯【幽灵座舱】Commands
             commands::script::toggle_account_autoreply,
             commands::script::execute_and_advance_workflow,
             commands::script::get_account_flows,
             commands::script::notify_window_focus,
             commands::script::notify_peer_focus,
-            // 🎯【演示命令】Ghost Cockpit Demo
             commands::ghost_demo::ghost_cockpit_demo,
             commands::ghost_demo::list_all_flows,
             commands::ghost_demo::reset_demo_instance,
-            // 🔐【Telegram 登录】
             commands::telegram_login::telegram_open_login,
             commands::telegram_login::telegram_input_phone,
             commands::telegram_login::telegram_check_code_status,

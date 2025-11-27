@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { listen } from '@tauri-apps/api/event'
 import type { Message, Account } from '@/lib/schemas'
 import { Wallet, Activity, Send, MoreHorizontal, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 
 export const Route = createFileRoute('/' as any)({
   component: Index,
@@ -129,6 +130,25 @@ function Index() {
               <div className="text-zinc-500 text-center py-10">No accounts connected</div>
             )}
           </div>
+
+          {/* Telegram 登录测试按钮 */}
+          <button
+            onClick={async () => {
+              try {
+                console.log('开始测试 Telegram 登录...');
+                const result = await invoke('telegram_open_login', { accountId: 'test-1' });
+                alert('登录结果: ' + result);
+                console.log('Telegram 登录结果:', result);
+              } catch (err: any) {
+                console.error('Telegram 登录错误:', err);
+                const errorMsg = typeof err === 'object' ? JSON.stringify(err, null, 2) : String(err);
+                alert('错误详情:\n' + errorMsg);
+              }
+            }}
+            className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-all"
+          >
+            🔐 测试 Telegram 登录
+          </button>
         </div>
 
         {/* Right Panel: Minimal Chat Interface */}

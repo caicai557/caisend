@@ -31,11 +31,13 @@
     "app": {
         "windows": [
             {
+                "label": "main",
                 "title": "Teleflow 2025",
                 "width": 800,
                 "height": 600,
                 "resizable": true,
-                "fullscreen": false
+                "fullscreen": false,
+                "additionalBrowserArgs": "--remote-debugging-port=9222"
             },
             {
                 "label": "hud_overlay",

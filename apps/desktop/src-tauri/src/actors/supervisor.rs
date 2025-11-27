@@ -4,6 +4,8 @@ use std::sync::Arc;
 use crate::adapters::browser::cdp_adapter::CdpManager;
 use super::account::{AccountActor, AccountConfig, AccountMessage};
 
+use crate::domain::decision::pbt_engine::PbtEngine;
+
 #[derive(Debug)]
 pub enum SupervisorMessage {
     SpawnAccount { config: AccountConfig },
@@ -17,6 +19,7 @@ pub struct SupervisorState {
     pub accounts: HashMap<String, ActorRef<AccountMessage>>,
     pub configs: HashMap<String, AccountConfig>,
     pub cdp_manager: Arc<CdpManager>,
+    pub pbt_engine: Arc<PbtEngine>,
 }
 
 // use async_trait::async_trait;
@@ -25,18 +28,19 @@ pub struct SupervisorState {
 impl Actor for SystemSupervisor {
     type Msg = SupervisorMessage;
     type State = SupervisorState;
-    type Arguments = Arc<CdpManager>;
+    type Arguments = (Arc<CdpManager>, Arc<PbtEngine>);
 
     async fn pre_start(
         &self,
         _myself: ActorRef<Self::Msg>,
-        cdp_manager: Self::Arguments,
+        (cdp_manager, pbt_engine): Self::Arguments,
     ) -> Result<Self::State, ActorProcessingErr> {
         tracing::info!("[SystemSupervisor] Starting supervisor");
         Ok(SupervisorState {
             accounts: HashMap::new(),
             configs: HashMap::new(),
             cdp_manager,
+            pbt_engine,
         })
     }
 
