@@ -1,6 +1,7 @@
-import { jsx as _jsx } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { createFileRoute } from '@tanstack/react-router';
 import CockpitHUD from '@/components/posend/CockpitHUD';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 import { useEffect } from 'react';
 import { initCockpitListener } from '@/stores/cockpitStore';
 export const Route = createFileRoute('/cockpit')({
@@ -17,7 +18,8 @@ function CockpitPage() {
         initCockpitListener();
         console.log('[CockpitPage] Initialized');
     }, []);
-    return (_jsx("div", { className: "h-screen w-full overflow-hidden", style: {
+    return (_jsxs("div", { className: "h-screen w-full overflow-hidden", style: {
+            // @ts-ignore
             WebkitAppRegion: 'drag'
-        }, children: _jsx(CockpitHUD, {}) }));
+        }, children: [_jsx(CockpitHUD, {}), _jsx(ToastContainer, {})] }));
 }

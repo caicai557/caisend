@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useCockpitStore } from '@/stores/cockpitStore';
+import { useToastStore } from '@/stores/toastStore';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 /**
@@ -11,10 +12,10 @@ import { useEffect, useRef } from 'react';
  * - 极简主义 (Minimalism): 隐藏干扰元素，聚焦核心信息
  */
 export function CockpitHUD() {
-    const store = useCockpitStore();
-    const { currentFlow, currentStepId, isAutoReplyEnabled, toggleAutoReply, manualSendCurrentStep, } = store;
-    // 自动滚动到当前步骤
+    const { currentFlow, currentStepId, isAutoReplyEnabled, toggleAutoReply, manualSendCurrentStep, } = useCockpitStore();
+    const { addToast } = useToastStore();
     const activeStepRef = useRef(null);
+    // 自动滚动到当前步骤
     useEffect(() => {
         if (activeStepRef.current) {
             activeStepRef.current.scrollIntoView({
@@ -28,6 +29,16 @@ export function CockpitHUD() {
         if (step.id !== currentStepId)
             return false;
         return !isAutoReplyEnabled || step.advance_mode.type === 'manual';
+    };
+    const handleManualSend = async () => {
+        try {
+            await manualSendCurrentStep();
+            addToast('success', '指令已发送');
+        }
+        catch (e) {
+            console.error(e);
+            addToast('error', '发送失败，请检查连接');
+        }
     };
     return (_jsxs(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: "h-screen w-full flex flex-col p-3 select-none glass-panel overflow-hidden rounded-xl", children: [_jsxs("header", { className: "flex items-center justify-between mb-4 px-1 py-1 shrink-0 z-20", children: [_jsxs("div", { className: "flex items-center gap-3 overflow-hidden", children: [_jsx(motion.div, { animate: {
                                     boxShadow: isAutoReplyEnabled
@@ -44,9 +55,12 @@ export function CockpitHUD() {
                                             ${isActive ? 'text-blue-200 bg-blue-500/20' : 'text-zinc-600 bg-zinc-800'}
                                         `, children: index + 1 }), _jsxs("div", { className: "flex-1 min-w-0", children: [_jsx("p", { className: `text-sm leading-relaxed whitespace-pre-wrap ${isActive ? 'text-zinc-100' : 'text-zinc-400'}`, children: step.content }), _jsxs("div", { className: "flex items-center justify-between mt-2 h-6", children: [_jsx("div", { className: "flex items-center gap-2", children: _jsx(ModeBadge, { mode: step.advance_mode.type }) }), _jsx(AnimatePresence, { children: showButton && (_jsx(motion.button, { initial: { opacity: 0, scale: 0.8, x: 10 }, animate: { opacity: 1, scale: 1, x: 0 }, exit: { opacity: 0, scale: 0.8 }, whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 }, onClick: (e) => {
                                                                             e.stopPropagation();
-                                                                            manualSendCurrentStep();
+                                                                            handleManualSend();
                                                                         }, className: "\r\n                                                                px-3 py-0.5 text-xs font-medium rounded\r\n                                                                bg-blue-500 text-white shadow-lg shadow-blue-500/30\r\n                                                                hover:bg-blue-400 border border-blue-400/50\r\n                                                            ", children: "\u53D1\u9001" })) })] })] })] })] }, step.id));
-                            }) }), !currentFlow && (_jsxs(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: "absolute inset-0 flex flex-col items-center justify-center text-zinc-600", children: [_jsx("div", { className: "w-16 h-16 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4 border border-zinc-700/50", children: _jsx("div", { className: "w-2 h-2 bg-zinc-600 rounded-full animate-pulse" }) }), _jsx("p", { className: "text-xs tracking-widest uppercase opacity-50", children: "System Idle" })] }))] }) })] }));
+                            }) }), !currentFlow && (_jsxs(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, className: "absolute inset-0 flex flex-col items-center justify-center text-zinc-600", children: [_jsx(motion.div, { className: "w-16 h-16 rounded-full bg-zinc-800/30 flex items-center justify-center mb-4 border border-zinc-700/30 backdrop-blur-sm", animate: {
+                                        boxShadow: ["0 0 0px rgba(59,130,246,0)", "0 0 20px rgba(59,130,246,0.1)", "0 0 0px rgba(59,130,246,0)"],
+                                        scale: [1, 1.02, 1]
+                                    }, transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }, children: _jsx("div", { className: "w-1.5 h-1.5 bg-blue-500/40 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.4)]" }) }), _jsx("p", { className: "text-xs tracking-widest uppercase opacity-50", children: "System Idle" })] }))] }) })] }));
 }
 // 辅助组件：模式徽章
 function ModeBadge({ mode }) {

@@ -321,9 +321,9 @@ export declare const WorkflowDefinitionSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     name: string;
     id: string;
+    version: string;
     created_at: string;
     updated_at: string;
-    version: string;
     nodes: Record<string, {
         id: string;
         type: "Start" | "SendMessage" | "WaitForResponse" | "ConditionalBranch" | "AddTag" | "End";
@@ -348,9 +348,9 @@ export declare const WorkflowDefinitionSchema: z.ZodObject<{
 }, {
     name: string;
     id: string;
+    version: string;
     created_at: string;
     updated_at: string;
-    version: string;
     nodes: Record<string, {
         id: string;
         type: "Start" | "SendMessage" | "WaitForResponse" | "ConditionalBranch" | "AddTag" | "End";

@@ -44,14 +44,12 @@ impl SessionManager {
         let mut builder = WebviewWindowBuilder::new(&self.app_handle, &window_label, url)
             .title(format!("Teleflow - {}", account.name))
             .inner_size(1024.0, 768.0)
-            .data_directory(session_dir.clone()); // CRITICAL: Data Partitioning
-
-        // Inject MVP Observer Script (MVP-T3)
-        let injection = format!(
-            "window.__TELEFLOW_ACCOUNT_ID = '{}';\n{}",
-            account.id,
-            include_str!("../../js/mvp_observer.js")
-        );
+use crate::domain::models::Account;
+use crate::error::CoreError;
+use crate::adapters::browser::cdp_adapter::CdpManager;
+use crate::managers::port_watcher::PortWatcher;
+use crate::managers::script_manager::ScriptManager; // Added
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use ractor;
 use crate::actors::supervisor;
 use crate::actors::account;
@@ -59,11 +57,20 @@ use tokio::sync::oneshot;
 
 pub struct SessionManager {
     app_handle: AppHandle,
+    script_manager: ScriptManager, // Added
 }
 
 impl SessionManager {
     pub fn new(app_handle: AppHandle) -> Self {
-        Self { app_handle }
+        // Resolve scripts directory
+        // In dev: src-tauri/scripts
+        // In prod: resource/scripts (TODO: handle bundle)
+        let script_dir = std::env::current_dir()
+            .unwrap_or_default()
+            .join("scripts");
+            
+        let script_manager = ScriptManager::new(app_handle.clone(), script_dir);
+        Self { app_handle, script_manager }
     }
 
     pub async fn spawn_account_window(&self, account: &Account) -> Result<(), CoreError> {
@@ -100,10 +107,17 @@ impl SessionManager {
             .data_directory(session_dir.clone()); // CRITICAL: Data Partitioning
 
         // Inject MVP Observer Script (MVP-T3)
+        // 🚀 Phase 2.1: Use ScriptManager for injection
+        let script_content = self.script_manager.get_script("perception_core")
+            .unwrap_or_else(|| {
+                tracing::warn!("[SessionManager] 'perception_core' script not found, using fallback");
+                include_str!("../../scripts/telegram_peer_extractor.js").to_string()
+            });
+
         let injection = format!(
             "window.__TELEFLOW_ACCOUNT_ID = '{}';\n{}",
             account.id,
-            include_str!("../../js/mvp_observer.js")
+            script_content
         );
         builder = builder.initialization_script(injection);
 

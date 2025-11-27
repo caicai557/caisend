@@ -37,7 +37,6 @@ pub async fn execute_and_advance_workflow(
     step_id: String,
     repo: State<'_, Arc<dyn ScriptRepositoryPort>>,
     hub: State<'_, Arc<ContextHub>>,
-    cdp: State<'_, Arc<CdpManager>>,
 ) -> Result<(), String> {
     tracing::info!(
         "[Command] execute_and_advance: account={}, peer={}, step={}",

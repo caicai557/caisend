@@ -15,6 +15,7 @@ pub struct SystemSupervisor;
 
 pub struct SupervisorState {
     pub accounts: HashMap<String, ActorRef<AccountMessage>>,
+    pub configs: HashMap<String, AccountConfig>,
     pub cdp_manager: Arc<CdpManager>,
 }
 
@@ -32,6 +33,7 @@ impl Actor for SystemSupervisor {
         tracing::info!("[SystemSupervisor] Starting supervisor");
         Ok(SupervisorState {
             accounts: HashMap::new(),
+            configs: HashMap::new(),
             cdp_manager,
         })
     }
@@ -52,6 +54,9 @@ impl Actor for SystemSupervisor {
 
                 tracing::info!("[SystemSupervisor] Spawning actor for {}", account_id);
                 
+                // Store config for self-healing
+                state.configs.insert(account_id.clone(), config.clone());
+
                 // Spawn the actor linked to this supervisor
                 let (actor_ref, _) = Actor::spawn_linked(
                     Some(format!("account-{}", account_id)),
@@ -67,6 +72,7 @@ impl Actor for SystemSupervisor {
                 let _ = reply.send(actor);
             }
             SupervisorMessage::KillAccount(account_id) => {
+                state.configs.remove(&account_id); // Stop self-healing for this account
                 if let Some(actor) = state.accounts.remove(&account_id) {
                     tracing::info!("[SystemSupervisor] Killing actor for {}", account_id);
                     actor.stop(None);
@@ -79,7 +85,7 @@ impl Actor for SystemSupervisor {
     // Supervision logic: Handle child failures
     async fn handle_supervisor_evt(
         &self,
-        _myself: ActorRef<Self::Msg>,
+        myself: ActorRef<Self::Msg>,
         message: SupervisionEvent,
         state: &mut Self::State,
     ) -> Result<(), ActorProcessingErr> {
@@ -89,7 +95,6 @@ impl Actor for SystemSupervisor {
                 tracing::error!("[SystemSupervisor] 🚨 Actor {} failed: {}", actor_name, error);
                 
                 // Identify which account failed
-                // Name format: "account-{id}"
                 if let Some(account_id) = actor_name.strip_prefix("account-") {
                     let account_id = account_id.to_string();
                     
@@ -97,13 +102,29 @@ impl Actor for SystemSupervisor {
                     state.accounts.remove(&account_id);
 
                     // Self-healing: Restart the actor
-                    // Note: In a real system, we'd need to persist the config to restart it.
-                    // For this MVP, we might need to store config in state.accounts or similar.
-                    // But wait, we don't have the config here easily unless we stored it.
-                    // Let's assume for now we just log it. 
-                    // To implement true self-healing, we should store `AccountConfig` in `SupervisorState`.
-                    
-                    tracing::warn!("[SystemSupervisor] TODO: Implement auto-restart for {}", account_id);
+                    if let Some(config) = state.configs.get(&account_id) {
+                        tracing::info!("[SystemSupervisor] 🩹 Self-healing: Restarting {}", account_id);
+                        
+                        // Re-spawn
+                        match Actor::spawn_linked(
+                            Some(format!("account-{}", account_id)),
+                            AccountActor,
+                            (config.clone(), state.cdp_manager.clone()),
+                            myself.get_cell(),
+                        ).await {
+                            Ok((new_actor, _)) => {
+                                state.accounts.insert(account_id, new_actor);
+                                tracing::info!("[SystemSupervisor] ✅ Restarted successfully");
+                            }
+                            Err(e) => {
+                                tracing::error!("[SystemSupervisor] ❌ Restart failed: {}", e);
+                                // If restart fails, we might want to retry later or give up.
+                                // For now, we leave it dead but config remains if we want to try again manually.
+                            }
+                        }
+                    } else {
+                        tracing::warn!("[SystemSupervisor] No config found for {}, cannot restart", account_id);
+                    }
                 }
             }
             SupervisionEvent::ActorTerminated(actor_cell, _, _) => {
@@ -112,6 +133,9 @@ impl Actor for SystemSupervisor {
                 
                 if let Some(account_id) = actor_name.strip_prefix("account-") {
                     state.accounts.remove(account_id);
+                    // If terminated normally (e.g. via KillAccount), config should have been removed already.
+                    // If it was a crash that looked like termination (unlikely with ractor), we check config.
+                    // But usually KillAccount removes config.
                 }
             }
             _ => {}

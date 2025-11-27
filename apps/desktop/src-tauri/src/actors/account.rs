@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use crate::adapters::browser::cdp_adapter::CdpManager;
 use crate::domain::workflow::ScriptStep;
+use crate::infrastructure::ghost::circadian::CircadianRhythm;
+use crate::infrastructure::ghost::biomechanics::HumanInput;
 
 #[derive(Debug, Clone)]
 pub struct AccountConfig {
@@ -26,6 +28,7 @@ pub struct AccountState {
     pub config: AccountConfig,
     pub cdp_manager: Arc<CdpManager>,
     pub is_connected: bool,
+    pub circadian: CircadianRhythm,
 }
 
 #[async_trait::async_trait]
@@ -44,6 +47,7 @@ impl Actor for AccountActor {
             config,
             cdp_manager,
             is_connected: false,
+            circadian: CircadianRhythm::default(), // TODO: Load from config
         })
     }
 
@@ -63,8 +67,6 @@ impl Actor for AccountActor {
                     }
                     Err(e) => {
                         tracing::error!("[AccountActor] Connection failed: {}", e);
-                        // In a real supervisor setup, we might want to crash here or send a failure message
-                        // For now, we just log it.
                     }
                 }
             }
@@ -78,8 +80,28 @@ impl Actor for AccountActor {
                     tracing::warn!("[AccountActor] Cannot execute workflow: Not connected");
                     return Ok(());
                 }
+
+                // 👻 Ghost Protocol: Circadian Rhythm Check
+                if !state.circadian.should_be_active() {
+                    tracing::warn!("[AccountActor] 🌙 Circadian Rhythm: Account is resting. Skipping execution.");
+                    // In a real system, we might reschedule or queue this.
+                    // For now, we just drop it to simulate "offline".
+                    return Ok(());
+                }
                 
                 tracing::info!("[AccountActor] Executing step {} for peer {}", step.id, peer_id);
+
+                // 👻 Ghost Protocol: Biomechanics (Thinking Delay)
+                let thinking_delay = HumanInput::get_thinking_delay();
+                tracing::debug!("[AccountActor] 🤔 Thinking for {:?}", thinking_delay);
+                tokio::time::sleep(thinking_delay).await;
+
+                // 👻 Ghost Protocol: Biomechanics (Typing Delay)
+                // Simulate typing time based on content length
+                let typing_delay = HumanInput::get_typing_delay() * step.content.len() as u32;
+                tracing::debug!("[AccountActor] ⌨️ Typing simulation for {:?}", typing_delay);
+                tokio::time::sleep(typing_delay).await;
+
                 match state.cdp_manager.send_message(&state.config.account_id, &peer_id, &step.content).await {
                     Ok(_) => tracing::info!("[AccountActor] Message sent"),
                     Err(e) => tracing::error!("[AccountActor] Send failed: {}", e),
@@ -90,7 +112,6 @@ impl Actor for AccountActor {
                 state.config = new_config;
             }
             AccountMessage::HealthCheck => {
-                // Simple liveness check
                 tracing::debug!("[AccountActor] Health check for {}", state.config.account_id);
             }
         }

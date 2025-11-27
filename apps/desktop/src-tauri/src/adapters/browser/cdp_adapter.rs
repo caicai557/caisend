@@ -123,6 +123,29 @@ impl CdpManager {
             tracing::error!("[CDP Binding] Failed to add binding: {:?}", e);
         }
 
+        // 👻 Phase 3.3: Fingerprint Spoofing (Ghost Protocol)
+        // Override navigator.webdriver to false to evade basic detection
+        let spoof_script = r#"
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => false,
+            });
+            // Mock plugins to look like a regular browser
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3],
+            });
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['en-US', 'en'],
+            });
+        "#;
+
+        tracing::info!("[Ghost Protocol] Injecting fingerprint spoofing for {}", account_id);
+        if let Err(e) = browser
+            .execute(chromiumoxide::cdp::browser_protocol::page::AddScriptToEvaluateOnNewDocumentParams::new(spoof_script.to_string()))
+            .await
+        {
+             tracing::error!("[Ghost Protocol] Failed to inject spoofing script: {:?}", e);
+        }
+
         // 🔥 Phase 2.2: Start heartbeat for connection health monitoring
         self.start_heartbeat(browser.clone(), account_id.clone(), port);
 

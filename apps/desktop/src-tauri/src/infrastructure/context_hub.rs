@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter};  // Emitter trait for emit()
 use serde::{Serialize, Deserialize};
 use crate::domain::ports::ScriptRepositoryPort;
 use crate::domain::workflow::{ScriptFlow, ScriptInstance, AccountConfig};
+use crate::infrastructure::persistence::cache::CacheManager;
 
 /// 当前活跃上下文（三重焦点感知的核心）
 #[derive(Debug, Clone, Default)]
@@ -12,13 +13,18 @@ struct ActiveContext {
     peer_id: Option<String>,
 }
 
-/// 查询结果缓存（性能优化）
-#[derive(Debug, Clone)]
-struct QueryCache {
-    config: Option<AccountConfig>,
-    flow: Option<ScriptFlow>,
-    last_account_id: Option<String>,
-    last_flow_id: Option<String>,
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum ContextCacheKey {
+    AccountConfig(String),
+    Instance(String, String), // account_id, peer_id
+    Flow(String), // flow_id
+}
+
+#[derive(Clone, Debug)]
+pub enum ContextCacheValue {
+    Config(AccountConfig),
+    Instance(ScriptInstance),
+    Flow(ScriptFlow),
 }
 
 /// 上下文中枢 - 幽灵座舱的大脑
@@ -29,7 +35,7 @@ struct QueryCache {
 /// 3. 状态感知：查询PFSM状态并广播给HUD
 pub struct ContextHub {
     context: Arc<RwLock<ActiveContext>>,
-    cache: Arc<RwLock<Option<QueryCache>>>,
+    cache: CacheManager<ContextCacheKey, ContextCacheValue>,
     script_repo: Arc<dyn ScriptRepositoryPort>,
     app_handle: AppHandle,
 }
@@ -41,7 +47,7 @@ impl ContextHub {
     ) -> Self {
         Self {
             context: Arc::new(RwLock::new(ActiveContext::default())),
-            cache: Arc::new(RwLock::new(None)),
+            cache: CacheManager::new(1000), // Capacity 1000
             script_repo,
             app_handle,
         }
@@ -118,17 +124,13 @@ impl ContextHub {
     
     /// 查询账号配置（带缓存）
     async fn query_account_config(&self, account_id: &str) -> Option<AccountConfig> {
+        let key = ContextCacheKey::AccountConfig(account_id.to_string());
+        
         // 检查缓存
-        let cache = self.cache.read().await;
-        if let Some(ref c) = *cache {
-            if c.last_account_id.as_deref() == Some(account_id) {
-                if let Some(ref config) = c.config {
-                    tracing::debug!("[ContextHub] Cache hit: account_config");
-                    return Some(config.clone());
-                }
-            }
+        if let Some(ContextCacheValue::Config(config)) = self.cache.get(&key).await {
+            tracing::debug!("[ContextHub] Cache hit: account_config");
+            return Some(config);
         }
-        drop(cache);
         
         // 查询数据库
         let config = self.script_repo
@@ -139,18 +141,7 @@ impl ContextHub {
         
         // 更新缓存
         if let Some(ref cfg) = config {
-            let mut cache = self.cache.write().await;
-            if let Some(ref mut c) = *cache {
-                c.config = Some(cfg.clone());
-                c.last_account_id = Some(account_id.to_string());
-            } else {
-                *cache = Some(QueryCache {
-                    config: Some(cfg.clone()),
-                    flow: None,
-                    last_account_id: Some(account_id.to_string()),
-                    last_flow_id: None,
-                });
-            }
+            self.cache.populate(key, ContextCacheValue::Config(cfg.clone())).await;
         }
         
         config
@@ -162,11 +153,25 @@ impl ContextHub {
         account_id: &str,
         peer_id: &str,
     ) -> Option<ScriptInstance> {
-        self.script_repo
+        let key = ContextCacheKey::Instance(account_id.to_string(), peer_id.to_string());
+
+        // 检查缓存
+        if let Some(ContextCacheValue::Instance(instance)) = self.cache.get(&key).await {
+            tracing::debug!("[ContextHub] Cache hit: instance");
+            return Some(instance);
+        }
+
+        let instance = self.script_repo
             .get_instance(account_id, peer_id)
             .await
             .ok()
-            .flatten()
+            .flatten();
+
+        if let Some(ref inst) = instance {
+            self.cache.populate(key, ContextCacheValue::Instance(inst.clone())).await;
+        }
+
+        instance
     }
     
     /// 查询话术流程（带缓存）
@@ -176,18 +181,13 @@ impl ContextHub {
         instance: &Option<ScriptInstance>,
     ) -> Option<ScriptFlow> {
         let flow_id = instance.as_ref()?.flow_id.clone();
+        let key = ContextCacheKey::Flow(flow_id.clone());
         
         // 检查缓存
-        let cache = self.cache.read().await;
-        if let Some(ref c) = *cache {
-            if c.last_flow_id.as_deref() == Some(&flow_id) {
-                if let Some(ref flow) = c.flow {
-                    tracing::debug!("[ContextHub] Cache hit: flow");
-                    return Some(flow.clone());
-                }
-            }
+        if let Some(ContextCacheValue::Flow(flow)) = self.cache.get(&key).await {
+            tracing::debug!("[ContextHub] Cache hit: flow");
+            return Some(flow);
         }
-        drop(cache);
         
         // 查询数据库
         let flows = self.script_repo
@@ -198,18 +198,7 @@ impl ContextHub {
         let flow = flows.into_iter().find(|f| f.id == flow_id)?;
         
         // 更新缓存
-        let mut cache = self.cache.write().await;
-        if let Some(ref mut c) = *cache {
-            c.flow = Some(flow.clone());
-            c.last_flow_id = Some(flow_id);
-        } else {
-            *cache = Some(QueryCache {
-                config: None,
-                flow: Some(flow.clone()),
-                last_account_id: None,
-                last_flow_id: Some(flow_id),
-            });
-        }
+        self.cache.populate(key, ContextCacheValue::Flow(flow.clone())).await;
         
         Some(flow)
     }
@@ -262,15 +251,15 @@ impl ContextHub {
     
     /// 手动触发广播（用于配置变更后）
     pub async fn notify_config_changed(&self) {
-        // 清除缓存以确保获取最新数据
-        *self.cache.write().await = None;
+        // TODO: Invalidate specific config cache
+        // self.cache.invalidate(...).await;
         self.broadcast_update().await;
     }
     
     /// 清除缓存（用于数据更新后）
     pub async fn clear_cache(&self) {
-        *self.cache.write().await = None;
-        tracing::debug!("[ContextHub] Cache cleared");
+        // *self.cache.write().await = None;
+        tracing::debug!("[ContextHub] Cache clear requested (handled by TTL/Eviction)");
     }
 }
 
