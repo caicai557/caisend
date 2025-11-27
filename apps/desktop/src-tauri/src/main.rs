@@ -29,5 +29,7 @@ fn main() {
     //     }
     // }
 
-    teleflow_desktop_lib::run();
+    if let Err(err) = teleflow_desktop_lib::run() {
+        eprintln!("Application exited with error: {:?}", err);
+    }
 }

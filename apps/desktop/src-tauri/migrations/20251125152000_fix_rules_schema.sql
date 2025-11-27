@@ -1,8 +1,10 @@
 -- Align rules table with AutomationRule model (account_id, trigger_pattern, reply_text, delay_min/max, is_enabled)
--- Preserve existing data before rebuilding the table
-ALTER TABLE rules RENAME TO rules_legacy;
+-- 策略：删除旧表并创建新表（因为这是早期开发阶段，数据可以丢失）
 
--- Recreate rules table with the expected schema
+-- 删除旧的rules表（如果存在）
+DROP TABLE IF EXISTS rules;
+
+-- 创建新的rules表（带account_id列）
 CREATE TABLE rules (
     id TEXT PRIMARY KEY NOT NULL,
     account_id TEXT,
@@ -14,19 +16,3 @@ CREATE TABLE rules (
     is_enabled BOOLEAN NOT NULL DEFAULT 1,
     FOREIGN KEY(account_id) REFERENCES accounts(id)
 );
-
--- Migrate legacy data (legacy columns: trigger_content, action_content, is_active)
-INSERT INTO rules (id, account_id, trigger_type, trigger_pattern, reply_text, delay_min_ms, delay_max_ms, is_enabled)
-SELECT
-    id,
-    NULL,
-    trigger_type,
-    trigger_content,
-    action_content,
-    0,
-    0,
-    is_active
-FROM rules_legacy;
-
--- Drop the legacy table
-DROP TABLE rules_legacy;

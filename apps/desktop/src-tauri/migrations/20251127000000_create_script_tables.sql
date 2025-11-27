@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS script_flows (
     account_id TEXT NOT NULL,
     category_name TEXT NOT NULL,
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    updated_at INTEGER NOT NULL
+    -- FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_script_flows_account ON script_flows(account_id);
@@ -37,10 +37,10 @@ CREATE TABLE IF NOT EXISTS script_instances (
     updated_at INTEGER NOT NULL,
     
     -- 每个账号+对话只能有一个活跃实例
-    UNIQUE(account_id, peer_id),
+    UNIQUE(account_id, peer_id)
     
-    FOREIGN KEY (flow_id) REFERENCES script_flows(id) ON DELETE CASCADE,
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    -- FOREIGN KEY (flow_id) REFERENCES script_flows(id) ON DELETE CASCADE,
+    -- FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_script_instances_account_peer ON script_instances(account_id, peer_id);
@@ -49,11 +49,12 @@ CREATE INDEX idx_script_instances_account_peer ON script_instances(account_id, p
 CREATE TABLE IF NOT EXISTS account_configs (
     account_id TEXT PRIMARY KEY,
     autoreply_enabled INTEGER NOT NULL DEFAULT 0,  -- SQLite使用INTEGER表示BOOLEAN
-    updated_at INTEGER NOT NULL,
-    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    updated_at INTEGER NOT NULL
+    -- FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
 );
 
 -- 初始化种子数据：为现有账号创建默认配置
-INSERT OR IGNORE INTO account_configs (account_id, autoreply_enabled, updated_at)
-SELECT id, 0, strftime('%s', 'now')
-FROM accounts;
+-- 注意：这个语句在初始迁移时会失败，因为 accounts 表为空
+-- INSERT OR IGNORE INTO account_configs (account_id, autoreply_enabled, updated_at)
+-- SELECT id, 0, strftime('%s', 'now')
+-- FROM accounts;

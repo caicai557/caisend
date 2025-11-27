@@ -1,6 +1,10 @@
 -- 幽灵座舱种子数据
 -- 创建演示用的ScriptFlow
 
+-- 0. 先创建演示账号（如果不存在）
+INSERT OR IGNORE INTO accounts (id, name, status, created_at)
+VALUES ('demo_account', '演示账号', 'active', strftime('%s', 'now'));
+
 -- 1. 插入欢迎话术流程
 INSERT INTO script_flows (id, account_id, category_name, created_at, updated_at)
 VALUES ('flow_welcome', 'demo_account', '欢迎话术', 1732668000, 1732668000);

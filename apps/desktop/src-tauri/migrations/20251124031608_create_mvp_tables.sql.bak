@@ -1,0 +1,23 @@
+-- 注意：此迁移文件被禁用
+-- 原因：accounts 表已在 20250101000000_create_accounts_table.sql 创建
+--       rules 表已在 20250101000002_create_rules_table.sql 创建  
+-- 由于使用了 CREATE TABLE IF NOT EXISTS，这些语句不会执行
+-- 但它们定义的schema与实际schema不一致，导致后续迁移失败
+
+-- CREATE TABLE IF NOT EXISTS accounts (
+--     id TEXT PRIMARY KEY NOT NULL,
+--     name TEXT NOT NULL,
+--     status TEXT NOT NULL
+-- );
+
+-- CREATE TABLE IF NOT EXISTS rules (
+--     id TEXT PRIMARY KEY NOT NULL,
+--     account_id TEXT,
+--     trigger_type TEXT NOT NULL,
+--     trigger_pattern TEXT NOT NULL,
+--     reply_text TEXT,
+--     delay_min_ms INTEGER NOT NULL,
+--     delay_max_ms INTEGER NOT NULL,
+--     is_enabled BOOLEAN NOT NULL DEFAULT 1,
+--     FOREIGN KEY(account_id) REFERENCES accounts(id)
+-- );
