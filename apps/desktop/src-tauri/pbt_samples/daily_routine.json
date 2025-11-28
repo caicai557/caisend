@@ -1,0 +1,92 @@
+{
+    "name": "Daily Routine",
+    "description": "Behavior tree for daily account activities",
+    "root_node_id": "root",
+    "nodes": {
+        "root": {
+            "id": "root",
+            "node_type": "Sequence",
+            "config": {
+                "children": [
+                    "check_active_hours",
+                    "activity_selector"
+                ]
+            }
+        },
+        "check_active_hours": {
+            "id": "check_active_hours",
+            "node_type": "Condition",
+            "config": {
+                "condition_type": "IsActiveHour",
+                "start_hour": 9,
+                "end_hour": 22
+            }
+        },
+        "activity_selector": {
+            "id": "activity_selector",
+            "node_type": "Selector",
+            "config": {
+                "children": [
+                    "handle_messages",
+                    "send_replies",
+                    "idle"
+                ]
+            }
+        },
+        "handle_messages": {
+            "id": "handle_messages",
+            "node_type": "Sequence",
+            "config": {
+                "children": [
+                    "check_unread",
+                    "process_messages"
+                ]
+            }
+        },
+        "check_unread": {
+            "id": "check_unread",
+            "node_type": "Condition",
+            "config": {
+                "condition_type": "HasUnreadMessages"
+            }
+        },
+        "process_messages": {
+            "id": "process_messages",
+            "node_type": "Action",
+            "config": {
+                "action_type": "process_unread_messages"
+            }
+        },
+        "send_replies": {
+            "id": "send_replies",
+            "node_type": "Sequence",
+            "config": {
+                "children": [
+                    "check_pending",
+                    "send_scheduled"
+                ]
+            }
+        },
+        "check_pending": {
+            "id": "check_pending",
+            "node_type": "Condition",
+            "config": {
+                "condition_type": "HasPendingReplies"
+            }
+        },
+        "send_scheduled": {
+            "id": "send_scheduled",
+            "node_type": "Action",
+            "config": {
+                "action_type": "send_scheduled_replies"
+            }
+        },
+        "idle": {
+            "id": "idle",
+            "node_type": "Wait",
+            "config": {
+                "duration_ms": 60000
+            }
+        }
+    }
+}

@@ -73,6 +73,7 @@ pub fn run() -> anyhow::Result<()> {
 
                 // Initialize PBT Repository
                 let bt_repo = Arc::new(crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository::new(db_pool.clone()));
+                app.manage(bt_repo.clone());
 
                 // Initialize System Supervisor
                 let (supervisor, _) = ractor::Actor::spawn(
@@ -263,6 +264,13 @@ pub fn run() -> anyhow::Result<()> {
             commands::telegram_login::telegram_open_login,
             commands::telegram_login::telegram_input_phone,
             commands::telegram_login::telegram_check_code_status,
+            commands::pbt::create_pbt_definition,
+            commands::pbt::list_pbt_definitions,
+            commands::pbt::create_pbt_instance,
+            commands::pbt::get_pbt_instance_status,
+            commands::pbt::trigger_pbt_tick,
+            commands::pbt::get_active_pbt_instance,
+            commands::pbt::create_simple_test_definition,
         ])
         .run(tauri::generate_context!())
         .context("Error while running Tauri application")?;
