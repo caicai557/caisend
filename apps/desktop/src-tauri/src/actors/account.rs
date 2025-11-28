@@ -8,6 +8,7 @@ use crate::infrastructure::ghost::biomechanics::HumanInput;
 use crate::domain::behavior_tree::engine::{BehaviorTreeEngine, ActionContext};
 use crate::domain::behavior_tree::state::NodeStatus;
 use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
+use crate::domain::lifecycle::{LifecycleManager, LifecycleStatus};
 use ractor::async_trait as async_trait;
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ pub enum AccountMessage {
     UpdateConfig(AccountConfig),
     HealthCheck,
     Tick, // PBT Tick
+    SetLifecycleStatus(LifecycleStatus), // 新增：生命周期状态转换
 }
 
 pub struct AccountActor;
@@ -35,11 +37,13 @@ pub struct AccountState {
     pub bt_repo: Arc<BehaviorTreeRepository>,
     pub is_connected: bool,
     pub circadian: CircadianRhythm,
+    pub lifecycle_manager: LifecycleManager,
 }
 
 struct AccountActionContext {
     account_id: String,
     cdp_manager: Arc<CdpManager>,
+    lifecycle_status: LifecycleStatus,
 }
 
 #[async_trait::async_trait]
@@ -68,6 +72,45 @@ impl ActionContext for AccountActionContext {
                     Ok(_) => Ok(NodeStatus::Success),
                     Err(e) => {
                         tracing::error!("Failed to send message: {}", e);
+                        Ok(NodeStatus::Failure)
+                    }
+                }
+            }
+            "check_lifecycle" => {
+                // 检查生命周期状态
+                let required_status = params.get("status").and_then(|v| v.as_str());
+                
+                match required_status {
+                    Some("active") => {
+                        if matches!(self.lifecycle_status, LifecycleStatus::Active) {
+                            Ok(NodeStatus::Success)
+                        } else {
+                            Ok(NodeStatus::Failure)
+                        }
+                    }
+                    Some("login") => {
+                        if matches!(self.lifecycle_status, LifecycleStatus::Login) {
+                            Ok(NodeStatus::Success)
+                        } else {
+                            Ok(NodeStatus::Failure)
+                        }
+                    }
+                    Some("restricted") => {
+                        if matches!(self.lifecycle_status, LifecycleStatus::Restricted) {
+                            Ok(NodeStatus::Success)
+                        } else {
+                            Ok(NodeStatus::Failure)
+                        }
+                    }
+                    Some("banned") => {
+                        if matches!(self.lifecycle_status, LifecycleStatus::Banned) {
+                            Ok(NodeStatus::Success)
+                        } else {
+                            Ok(NodeStatus::Failure)
+                        }
+                    }
+                    _ => {
+                        tracing::warn!("Invalid or missing lifecycle status parameter");
                         Ok(NodeStatus::Failure)
                     }
                 }
@@ -130,6 +173,7 @@ impl Actor for AccountActor {
             bt_repo,
             is_connected: false,
             circadian: CircadianRhythm::default(), // TODO: Load from config
+            lifecycle_manager: LifecycleManager::new(LifecycleStatus::Login),
         })
     }
 
@@ -197,6 +241,15 @@ impl Actor for AccountActor {
                 tracing::debug!("[AccountActor] Health check for {}", state.config.account_id);
             }
             AccountMessage::Tick => {
+                // Check lifecycle status first
+                if !state.lifecycle_manager.can_execute_pbt() {
+                    tracing::debug!(
+                        "[AccountActor] PBT skipped - lifecycle status: {}",
+                        state.lifecycle_manager.current_status().as_str()
+                    );
+                    return Ok(());
+                }
+
                 if state.is_connected {
                     // 1. Load active instance
                     if let Ok(Some(mut instance)) = state.bt_repo.get_active_instance_by_account(&state.config.account_id).await {
@@ -206,6 +259,7 @@ impl Actor for AccountActor {
                             let context = AccountActionContext {
                                 account_id: state.config.account_id.clone(),
                                 cdp_manager: state.cdp_manager.clone(),
+                                lifecycle_status: state.lifecycle_manager.current_status(),
                             };
 
                             // 4. Tick
@@ -222,6 +276,24 @@ impl Actor for AccountActor {
                                 }
                             }
                         }
+                    }
+                }
+            }
+            AccountMessage::SetLifecycleStatus(new_status) => {
+                if let Some(transition) = state.lifecycle_manager.transition_to(new_status) {
+                    tracing::info!(
+                        "[AccountActor] Lifecycle transitioned: {} -> {}",
+                        transition.from.as_str(),
+                        transition.to.as_str()
+                    );
+
+                    // Handle state transition side effects
+                    if transition.should_pause_pbt() {
+                        tracing::info!("[AccountActor] PBT execution paused");
+                        // Future: Update PBT instance status if needed
+                    } else if transition.should_resume_pbt() {
+                        tracing::info!("[AccountActor] PBT execution resumed");
+                        // Future: Resume PBT instance if needed
                     }
                 }
             }

@@ -1,0 +1,62 @@
+{
+    "name": "Lifecycle-Aware Message Handler",
+    "description": "A behavior tree that only operates when account is Active",
+    "root_node_id": "root",
+    "nodes": {
+        "root": {
+            "id": "root",
+            "node_type": "Sequence",
+            "children": [
+                "check_active",
+                "process_message"
+            ],
+            "config": {}
+        },
+        "check_active": {
+            "id": "check_active",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "check_lifecycle",
+                "status": "active"
+            }
+        },
+        "process_message": {
+            "id": "process_message",
+            "node_type": "Selector",
+            "children": [
+                "handle_help",
+                "default_reply"
+            ],
+            "config": {}
+        },
+        "handle_help": {
+            "id": "handle_help",
+            "node_type": "Sequence",
+            "children": [
+                "send_help_message"
+            ],
+            "config": {}
+        },
+        "send_help_message": {
+            "id": "send_help_message",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "send_message",
+                "peer_id": "test_peer",
+                "content": "你好！请问有什么可以帮助你的？"
+            }
+        },
+        "default_reply": {
+            "id": "default_reply",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "send_message",
+                "peer_id": "test_peer",
+                "content": "收到你的消息，稍后回复。"
+            }
+        }
+    }
+}
