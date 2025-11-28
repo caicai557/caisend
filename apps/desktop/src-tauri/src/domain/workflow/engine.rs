@@ -7,12 +7,15 @@ use anyhow::Result;
 use chrono::Utc;
 use std::sync::Arc;
 use tauri::AppHandle;
+use regex::Regex;
+use serde_json::Value;
 
 /// ExecutionIntent represents the side-effect to be executed after LVCP.
 #[derive(Debug, Clone)]
 pub enum ExecutionIntent {
     SendMessage { node_id: String, content: String },
     Wait { node_id: String },
+    ExecutePbt { node_id: String, tree_id: String, context_mapping: serde_json::Value },
     Complete,
     None,
 }
@@ -22,15 +25,21 @@ pub struct WorkflowEngine {
     #[allow(dead_code)]
     app_handle: AppHandle,
     repo: Arc<dyn WorkflowRepositoryPort>,
+    bt_repo: Arc<crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository>,
     checkpointer: Checkpointer,
 }
 
 impl WorkflowEngine {
-    pub fn new(app_handle: AppHandle, repo: Arc<dyn WorkflowRepositoryPort>) -> Self {
+    pub fn new(
+        app_handle: AppHandle, 
+        repo: Arc<dyn WorkflowRepositoryPort>,
+        bt_repo: Arc<crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository>
+    ) -> Self {
         let checkpointer = Checkpointer::new(repo.clone());
         Self {
             app_handle,
             repo,
+            bt_repo,
             checkpointer,
         }
     }
@@ -75,7 +84,7 @@ impl WorkflowEngine {
             .map_err(|e| anyhow::anyhow!("LVCP execution failed: {:?}", e))?;
 
         // Phase 4: Execute Intent (side-effects)
-        self.execute_intent(&intent).await?;
+        self.execute_intent(account_id, contact_id, &intent).await?;
 
         match intent {
             ExecutionIntent::None => Ok(false),
@@ -83,9 +92,76 @@ impl WorkflowEngine {
         }
     }
 
+    async fn execute_intent(
+        &self,
+        account_id: &str,
+        contact_id: &str,
+        intent: &ExecutionIntent,
+    ) -> Result<()> {
+        match intent {
+            ExecutionIntent::SendMessage { node_id: _, content } => {
+                // TODO: Use AccountActor to send message
+                tracing::info!("Executing SendMessage intent: {}", content);
+                Ok(())
+            }
+            ExecutionIntent::Wait { node_id: _ } => {
+                tracing::info!("Executing Wait intent");
+                Ok(())
+            }
+            ExecutionIntent::ExecutePbt { node_id, tree_id, context_mapping } => {
+                tracing::info!("[WorkflowEngine] Triggering PBT {} at node {} for contact {}", tree_id, node_id, contact_id);
+
+                // 1. Deterministic PBT Instance ID
+                let pbt_instance_id = format!("{}_{}", contact_id, node_id);
+
+                // 2. Check if instance exists
+                let existing = self.bt_repo.get_instance(&pbt_instance_id).await
+                    .map_err(|e| anyhow::anyhow!("Failed to check PBT instance: {}", e))?;
+
+                if existing.is_none() {
+                    // 3. Create new instance
+                    tracing::info!("[WorkflowEngine] Creating new PBT instance {}", pbt_instance_id);
+
+                    // Load definition to verify it exists
+                    let _definition = self.bt_repo.get_definition(tree_id).await
+                        .map_err(|e| anyhow::anyhow!("Failed to load PBT definition: {}", e))?
+                        .ok_or_else(|| anyhow::anyhow!("PBT definition {} not found", tree_id))?;
+
+                    // Create instance
+                    use crate::domain::behavior_tree::state::{BehaviorTreeInstance, TreeStatus};
+
+                    let new_instance = BehaviorTreeInstance {
+                        id: pbt_instance_id.clone(),
+                        definition_id: tree_id.clone(),
+                        account_id: account_id.to_string(),
+                        node_states: std::collections::HashMap::new(),
+                        blackboard: context_mapping.clone().into(), // Initialize blackboard with context mapping
+                        status: TreeStatus::Running,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    };
+
+                    self.bt_repo.save_instance(&new_instance).await
+                        .map_err(|e| anyhow::anyhow!("Failed to save PBT instance: {}", e))?;
+
+                    tracing::info!("[WorkflowEngine] PBT instance created and saved. AccountActor should pick it up.");
+                } else {
+                    tracing::info!("[WorkflowEngine] PBT instance {} already exists, skipping creation", pbt_instance_id);
+                }
+
+                Ok(())
+            }
+            ExecutionIntent::Complete => {
+                tracing::info!("Workflow completed");
+                Ok(())
+            }
+            ExecutionIntent::None => Ok(()),
+        }
+    }
+
     /// Pure compute logic: takes current state, returns new state + intent.
     /// This is a pure, synchronous function suitable for use in Checkpointer.
-    fn compute_and_transition_pure(
+    pub(crate) fn compute_and_transition_pure(
         current_state: Option<WorkflowInstance>,
         definition: &SchemaDefinition,
         message_content: &str,
@@ -134,24 +210,24 @@ impl WorkflowEngine {
             "Wait" => ExecutionIntent::Wait {
                 node_id: next_node_id.clone(),
             },
+            "ExecuteBehaviorTree" => {
+                let tree_id = node.config.get("tree_id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let context_mapping = node.config.get("context_mapping").cloned().unwrap_or(serde_json::json!({}));
+                
+                ExecutionIntent::ExecutePbt {
+                    node_id: next_node_id.clone(),
+                    tree_id,
+                    context_mapping,
+                }
+            }
             "End" => {
                 instance.status = InstanceStatus::Completed.to_string();
                 ExecutionIntent::Complete
             }
             _ => ExecutionIntent::None,
-        };
-
-        Ok((Some(instance), intent))
-    }
-
-   /// Synchronous version of compute_transition for use in pure closures
-    fn compute_transition_sync(
-        definition: &SchemaDefinition,
-        current_step_id: &str,
-        input_message: &str,
-    ) -> Result<Option<String>> {
-        
-        use super::schema::MatchType;
 
         let edges: Vec<&super::schema::WorkflowEdge> = definition
             .edges
@@ -201,74 +277,6 @@ impl WorkflowEngine {
         }
 
         // Check fallback
-        if let Some(edge) = fallback_edge {
-            return Ok(Some(edge.target_node_id.clone()));
-        }
-
-        Ok(None)
-    }
-    
-    /// Execute side-effects based on Intent.
-    async fn execute_intent(&self, intent: &ExecutionIntent) -> Result<()> {
-        match intent {
-            ExecutionIntent::SendMessage { node_id, content } => {
-                tracing::info!(
-                    "[WorkflowEngine] Executing SendMessage for {}: {}",
-                    node_id,
-                    content
-                );
-                // TODO: Call CDP adapter to send message
-                Ok(())
-            }
-            ExecutionIntent::Wait { node_id } => {
-                tracing::info!("[WorkflowEngine] Waiting at node {}", node_id);
-                Ok(())
-            }
-            ExecutionIntent::Complete => {
-                tracing::info!("[WorkflowEngine] Workflow completed");
-                Ok(())
-            }
-            ExecutionIntent::None => Ok(()),
-        }
-    }
-
-    /// Compute the next step based on the current step and input message.
-    /// This async version is kept for compatibility with tests.
-    pub async fn compute_transition(
-        definition: &SchemaDefinition,
-        current_step_id: &str,
-        input_message: &str,
-    ) -> Result<Option<String>> {
-        use super::evaluator::evaluate_condition;
-        use super::schema::MatchType;
-
-        let edges: Vec<&super::schema::WorkflowEdge> = definition
-            .edges
-            .iter()
-            .filter(|e| e.source_node_id == current_step_id)
-            .collect();
-
-        let mut fallback_edge = None;
-
-        for edge in edges {
-            if let Some(condition) = &edge.condition {
-                if condition.match_type == MatchType::Fallback {
-                    fallback_edge = Some(edge);
-                    continue;
-                }
-
-                // Evaluate
-                // TODO: Pass real CognitionService and Pool when available
-                if evaluate_condition(input_message, condition, None, None).await? {
-                    return Ok(Some(edge.target_node_id.clone()));
-                }
-            } else {
-                // Unconditional transition (always true)
-                return Ok(Some(edge.target_node_id.clone()));
-            }
-        }
-
-        // If no specific match, check fallback
         if let Some(edge) = fallback_edge {
             return Ok(Some(edge.target_node_id.clone()));
         }

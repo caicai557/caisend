@@ -16,6 +16,8 @@ use adapters::db::SqliteScriptRepository;  // 幽灵座舱
 use infrastructure::ContextHub;  // 幽灵座舱中枢
 use anyhow::Context;
 use domain::automation::RuleEngine;
+use crate::domain::workflow::engine::WorkflowEngine;
+use crate::adapters::db::workflow_repo::WorkflowRepository;
 use domain::events::AppEvent;
 use domain::models::Message;
 use state::{AppState, AppStore, Cold};
@@ -74,6 +76,16 @@ pub fn run() -> anyhow::Result<()> {
                 // Initialize PBT Repository
                 let bt_repo = Arc::new(crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository::new(db_pool.clone()));
                 app.manage(bt_repo.clone());
+
+                // Initialize Workflow Engine
+                let workflow_repo = Arc::new(WorkflowRepository::new(db_pool.clone()));
+                let workflow_engine = Arc::new(WorkflowEngine::new(
+                    app.handle().clone(),
+                    workflow_repo.clone(),
+                    bt_repo.clone(),
+                ));
+                app.manage(workflow_engine.clone());
+                println!("=== WORKFLOW ENGINE STARTED ===");
 
                 // Initialize System Supervisor
                 let (supervisor, _) = ractor::Actor::spawn(

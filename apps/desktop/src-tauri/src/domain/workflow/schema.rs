@@ -19,7 +19,14 @@ pub enum NodeType {
     Start,          // 开始
     SendMessage,    // 发送消息
     WaitForReply,   // 关键：等待回复 (暂停并等待输入)
+    ExecuteBehaviorTree, // 执行行为树 (微观决策)
     End,            // 结束
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutePbtConfig {
+    pub tree_id: String,
+    pub context_mapping: HashMap<String, String>,
 }
 
 // 节点 (步骤) - 新版本，支持灵活的 node_type 字符串

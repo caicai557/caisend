@@ -72,3 +72,15 @@ impl Blackboard {
         self.data.contains_key(key)
     }
 }
+
+impl From<serde_json::Value> for Blackboard {
+    fn from(value: serde_json::Value) -> Self {
+        if let serde_json::Value::Object(map) = value {
+            Self {
+                data: map.into_iter().collect(),
+            }
+        } else {
+            Self::default()
+        }
+    }
+}

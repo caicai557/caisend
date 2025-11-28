@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::domain::workflow::engine::WorkflowEngine;
+    use crate::domain::workflow::engine::{WorkflowEngine, ExecutionIntent};
     use crate::domain::workflow::schema::{WorkflowDefinition, WorkflowNode, WorkflowEdge, Condition, MatchType};
+    use crate::domain::workflow::instance::WorkflowInstance;
     use std::collections::HashMap;
-    use std::sync::Arc;
-    use tauri::{AppHandle, Manager}; // We might need to mock AppHandle or avoid it in pure logic tests
+    use chrono::Utc;
 
     // Helper to create a simple definition
     fn create_simple_definition() -> WorkflowDefinition {
@@ -43,21 +43,14 @@ mod tests {
     #[tokio::test]
     async fn test_compute_next_step_match() {
         let def = create_simple_definition();
-        // We need a way to call compute_next_step without a full engine instance if possible, 
-        // or we construct a lightweight engine.
-        // Since WorkflowEngine needs AppHandle and Repo, maybe we should extract the logic to a static function or a separate struct "TransitionComputer".
-        // For now, let's assume we refactor Engine to have a static method or we can instantiate it with mocks.
-        // But AppHandle is hard to mock.
-        // Strategy: Test `WorkflowEngine::compute_transition` which should be a pure function (or close to it).
-        
-        let next_step = WorkflowEngine::compute_transition(&def, "step1", "next").await.unwrap();
+        let next_step = WorkflowEngine::compute_transition_sync(&def, "step1", "next").unwrap();
         assert_eq!(next_step, Some("step2".to_string()));
     }
 
     #[tokio::test]
     async fn test_compute_next_step_no_match() {
         let def = create_simple_definition();
-        let next_step = WorkflowEngine::compute_transition(&def, "step1", "other").await.unwrap();
+        let next_step = WorkflowEngine::compute_transition_sync(&def, "step1", "other").unwrap();
         assert_eq!(next_step, None);
     }
     
@@ -74,7 +67,111 @@ mod tests {
             }),
         });
         
-        let next_step = WorkflowEngine::compute_transition(&def, "step1", "unknown").await.unwrap();
+        let next_step = WorkflowEngine::compute_transition_sync(&def, "step1", "unknown").unwrap();
         assert_eq!(next_step, Some("fallback_step".to_string()));
+    }
+
+    #[test]
+    fn test_execute_pbt_node() {
+        // Setup definition with PBT node
+        let mut nodes = HashMap::new();
+        nodes.insert("step1".to_string(), WorkflowNode {
+            id: "step1".to_string(),
+            node_type: "ExecuteBehaviorTree".to_string(),
+            config: serde_json::json!({
+                "tree_id": "test_tree",
+                "context_mapping": { "key": "value" }
+            }),
+        });
+        
+        let def = WorkflowDefinition {
+            id: "wf1".to_string(),
+            name: "Test".to_string(),
+            description: "Test".to_string(),
+            nodes,
+            edges: vec![],
+        };
+
+        // Setup instance
+        let instance = WorkflowInstance {
+            id: "inst1".to_string(),
+            definition_id: "wf1".to_string(),
+            contact_id: "contact1".to_string(),
+            current_node_id: Some("step1".to_string()),
+            status: "Running".to_string(),
+            state_data: serde_json::json!({}),
+            created_at: Utc::now().to_rfc3339(),
+            updated_at: Utc::now().to_rfc3339(),
+        };
+
+        // Execute pure function
+        // Note: compute_and_transition_pure calculates the NEXT step based on current step and message.
+        // But here we want to test what happens when we ARE at a PBT node.
+        // compute_and_transition_pure logic:
+        // 1. Calculate next_node_id based on transition.
+        // 2. Determine intent based on next_node_id.
+        
+        // So we need to be at a previous node, and transition TO the PBT node.
+        
+        let mut nodes = HashMap::new();
+        nodes.insert("start".to_string(), WorkflowNode {
+            id: "start".to_string(),
+            node_type: "Start".to_string(),
+            config: serde_json::json!({}),
+        });
+        nodes.insert("pbt_step".to_string(), WorkflowNode {
+            id: "pbt_step".to_string(),
+            node_type: "ExecuteBehaviorTree".to_string(),
+            config: serde_json::json!({
+                "tree_id": "test_tree",
+                "context_mapping": { "key": "value" }
+            }),
+        });
+
+        let edges = vec![
+            WorkflowEdge {
+                source_node_id: "start".to_string(),
+                target_node_id: "pbt_step".to_string(),
+                condition: None, // Unconditional
+            }
+        ];
+
+        let def = WorkflowDefinition {
+            id: "wf1".to_string(),
+            name: "Test".to_string(),
+            description: "Test".to_string(),
+            nodes,
+            edges,
+        };
+
+        let instance = WorkflowInstance {
+            id: "inst1".to_string(),
+            definition_id: "wf1".to_string(),
+            contact_id: "contact1".to_string(),
+            current_node_id: Some("start".to_string()),
+            status: "Running".to_string(),
+            state_data: serde_json::json!({}),
+            created_at: Utc::now().to_rfc3339(),
+            updated_at: Utc::now().to_rfc3339(),
+        };
+
+        let (new_instance, intent) = WorkflowEngine::compute_and_transition_pure(
+            Some(instance),
+            &def,
+            "any message"
+        ).unwrap();
+
+        // Verify intent
+        match intent {
+            ExecutionIntent::ExecutePbt { node_id, tree_id, context_mapping } => {
+                assert_eq!(node_id, "pbt_step");
+                assert_eq!(tree_id, "test_tree");
+                assert_eq!(context_mapping["key"], "value");
+            }
+            _ => panic!("Expected ExecutePbt intent, got {:?}", intent),
+        }
+        
+        // Verify instance updated
+        assert_eq!(new_instance.unwrap().current_node_id, Some("pbt_step".to_string()));
     }
 }

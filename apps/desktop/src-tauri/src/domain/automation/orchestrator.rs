@@ -37,7 +37,8 @@ impl AutomationOrchestrator {
                         if msg.sender_id == "me" { continue; }
 
                         // Priority 1: Workflow Engine
-                        match workflow_engine.process_message(&msg).await {
+                        // We assume conversation_id is contact_id for now
+                        match workflow_engine.process_message("default", &msg.conversation_id, &msg.content).await {
                             Ok(consumed) => {
                                 if consumed {
                                     println!("Message consumed by Workflow Engine");
