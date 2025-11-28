@@ -78,6 +78,25 @@ impl ActionContext for AccountActionContext {
             }
         }
     }
+    
+    async fn detect_intent(&self, text: &str) -> anyhow::Result<crate::ai::IntentResult> {
+        // TODO: 集成真实的IntentClassifier
+        // 当前使用简单的关键词匹配进行Mock
+        tracing::debug!("[AccountActionContext] Detecting intent for text: {}", text);
+        
+        let intent = if text.contains("你好") || text.contains("hello") || text.contains("hi") {
+            crate::ai::IntentResult::new(crate::ai::intents::GREETING, 0.9)
+        } else if text.contains("再见") || text.contains("bye") || text.contains("goodbye") {
+            crate::ai::IntentResult::new(crate::ai::intents::FAREWELL, 0.9)
+        } else if text.contains("?") || text.contains("？") || text.contains("什么") || text.contains("how") {
+            crate::ai::IntentResult::new(crate::ai::intents::QUESTION, 0.8)
+        } else {
+            crate::ai::IntentResult::new(crate::ai::intents::UNKNOWN, 0.3)
+        };
+        
+        tracing::info!("[AccountActionContext] Detected intent: {} (confidence: {})", intent.label, intent.confidence);
+        Ok(intent)
+    }
 }
 
 #[async_trait]

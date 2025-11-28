@@ -1,5 +1,6 @@
 use super::instance::{InstanceStatus, WorkflowInstance};
 use super::schema::WorkflowDefinition as SchemaDefinition;
+use super::schema::MatchType;
 use crate::domain::ports::WorkflowRepositoryPort;
 use crate::error::CoreError;
 use crate::infrastructure::checkpointer::Checkpointer;
@@ -84,7 +85,7 @@ impl WorkflowEngine {
             .map_err(|e| anyhow::anyhow!("LVCP execution failed: {:?}", e))?;
 
         // Phase 4: Execute Intent (side-effects)
-        self.execute_intent(account_id, contact_id, &intent).await?;
+        self.execute_intent(_account_id, contact_id, &intent).await?;
 
         match intent {
             ExecutionIntent::None => Ok(false),
@@ -228,7 +229,17 @@ impl WorkflowEngine {
                 ExecutionIntent::Complete
             }
             _ => ExecutionIntent::None,
+        };
 
+        Ok((Some(instance), intent))
+    }
+
+    /// Synchronous version of compute_transition for use in pure closures
+    pub(crate) fn compute_transition_sync(
+        definition: &SchemaDefinition,
+        current_step_id: &str,
+        input_message: &str,
+    ) -> Result<Option<String>> {
         let edges: Vec<&super::schema::WorkflowEdge> = definition
             .edges
             .iter()

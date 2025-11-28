@@ -49,8 +49,27 @@ pub fn run() -> anyhow::Result<()> {
                 let tokenizer_path = "models/tokenizer.json";
                 match crate::ai::inference::CognitionService::new(model_path, tokenizer_path) {
                     Ok(service) => {
-                        app.manage(service);
-                        println!("=== AI SERVICE INITIALIZED ===");
+                        let cognition_arc = Arc::new(service);
+                        
+                        // 创建IntentClassifier并预加载意图模板
+                        let mut intent_classifier = crate::ai::IntentClassifier::new(cognition_arc.clone());
+                        
+                        // 预加载常用意图模板
+                        let _ = intent_classifier.add_intent_template("greeting", vec![
+                            "你好", "hi", "hello", "早上好", "下午好", "晚上好"
+                        ]);
+                        let _ = intent_classifier.add_intent_template("farewell", vec![
+                            "再见", "bye", "goodbye", "拜拜", "回见", "886"
+                        ]);
+                        let _ = intent_classifier.add_intent_template("question", vec![
+                            "?", "？", "什么", "怎么", "how", "why", "when", "where", "who"
+                        ]);
+                        
+                        // 注入到Tauri state
+                        app.manage(cognition_arc);
+                        app.manage(intent_classifier);
+                        
+                        println!("=== AI SERVICE INITIALIZED WITH INTENT CLASSIFIER ===");
                     }
                     Err(e) => {
                         println!("=== AI SERVICE FAILED TO INIT (Non-fatal): {} ===", e);

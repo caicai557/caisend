@@ -5,6 +5,7 @@ mod tests {
     use crate::domain::workflow::instance::WorkflowInstance;
     use std::collections::HashMap;
     use chrono::Utc;
+    use serde_json::json;
 
     // Helper to create a simple definition
     fn create_simple_definition() -> WorkflowDefinition {
@@ -75,45 +76,6 @@ mod tests {
     fn test_execute_pbt_node() {
         // Setup definition with PBT node
         let mut nodes = HashMap::new();
-        nodes.insert("step1".to_string(), WorkflowNode {
-            id: "step1".to_string(),
-            node_type: "ExecuteBehaviorTree".to_string(),
-            config: serde_json::json!({
-                "tree_id": "test_tree",
-                "context_mapping": { "key": "value" }
-            }),
-        });
-        
-        let def = WorkflowDefinition {
-            id: "wf1".to_string(),
-            name: "Test".to_string(),
-            description: "Test".to_string(),
-            nodes,
-            edges: vec![],
-        };
-
-        // Setup instance
-        let instance = WorkflowInstance {
-            id: "inst1".to_string(),
-            definition_id: "wf1".to_string(),
-            contact_id: "contact1".to_string(),
-            current_node_id: Some("step1".to_string()),
-            status: "Running".to_string(),
-            state_data: serde_json::json!({}),
-            created_at: Utc::now().to_rfc3339(),
-            updated_at: Utc::now().to_rfc3339(),
-        };
-
-        // Execute pure function
-        // Note: compute_and_transition_pure calculates the NEXT step based on current step and message.
-        // But here we want to test what happens when we ARE at a PBT node.
-        // compute_and_transition_pure logic:
-        // 1. Calculate next_node_id based on transition.
-        // 2. Determine intent based on next_node_id.
-        
-        // So we need to be at a previous node, and transition TO the PBT node.
-        
-        let mut nodes = HashMap::new();
         nodes.insert("start".to_string(), WorkflowNode {
             id: "start".to_string(),
             node_type: "Start".to_string(),
@@ -150,7 +112,8 @@ mod tests {
             contact_id: "contact1".to_string(),
             current_node_id: Some("start".to_string()),
             status: "Running".to_string(),
-            state_data: serde_json::json!({}),
+            state_data: Some("{}".to_string()),
+            next_execution_time: None,
             created_at: Utc::now().to_rfc3339(),
             updated_at: Utc::now().to_rfc3339(),
         };

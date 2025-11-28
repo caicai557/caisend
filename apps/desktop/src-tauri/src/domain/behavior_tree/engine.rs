@@ -8,6 +8,9 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait ActionContext: Send + Sync {
     async fn execute_action(&self, action_type: &str, params: &serde_json::Value) -> Result<NodeStatus>;
+    
+    /// 检测文本意图
+    async fn detect_intent(&self, text: &str) -> Result<crate::ai::IntentResult>;
 }
 
 pub struct BehaviorTreeEngine;
@@ -138,14 +141,74 @@ impl BehaviorTreeEngine {
 
     async fn execute_action(
         node: &BtNode, 
-        _instance: &mut BehaviorTreeInstance,
+        instance: &mut BehaviorTreeInstance,
         context: &impl ActionContext
     ) -> Result<NodeStatus> {
         let action_type = node.config.get("action_type").and_then(|v| v.as_str()).unwrap_or("unknown");
+        
+        // 特殊处理 DetectIntent 动作
+        if action_type == "DetectIntent" {
+            let text = node.config.get("text")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("DetectIntent: missing 'text' parameter"))?;
+            
+            let result = context.detect_intent(text).await?;
+            
+            // 将意图检测结果写入blackboard
+            instance.blackboard.set("detected_intent".to_string(), serde_json::json!(result.label));
+            instance.blackboard.set("intent_confidence".to_string(), serde_json::json!(result.confidence));
+            
+            tracing::info!("[PBT] DetectIntent: {} (confidence: {})", result.label, result.confidence);
+            
+            return Ok(NodeStatus::Success);
+        }
+        
+        // 其他动作委托给context处理
         context.execute_action(action_type, &node.config).await
     }
 
     fn execute_condition(node: &BtNode, instance: &mut BehaviorTreeInstance) -> Result<NodeStatus> {
+        let condition_type = node.config.get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("generic");
+        
+        match condition_type {
+            "intent_match" => Self::check_intent_match(node, instance),
+            "generic" | _ => Self::check_generic_condition(node, instance),
+        }
+    }
+    
+    /// 检查意图匹配条件
+    fn check_intent_match(node: &BtNode, instance: &BehaviorTreeInstance) -> Result<NodeStatus> {
+        // 从blackboard获取检测到的意图
+        let detected_intent = instance.blackboard.get("detected_intent")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        
+        let expected_intent = node.config.get("expected_intent")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("IntentMatch: missing 'expected_intent'"))?;
+        
+        let confidence_threshold = node.config.get("confidence_threshold")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.7) as f32;
+        
+        let detected_confidence = instance.blackboard.get("intent_confidence")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0) as f32;
+        
+        if detected_intent == expected_intent && detected_confidence >= confidence_threshold {
+            tracing::debug!("[PBT] IntentMatch SUCCESS: {} ({})", expected_intent, detected_confidence);
+            Ok(NodeStatus::Success)
+        } else {
+            tracing::debug!("[PBT] IntentMatch FAILURE: expected={}, detected={} ({})", 
+                expected_intent, detected_intent, detected_confidence);
+            Ok(NodeStatus::Failure)
+        }
+    }
+    
+    /// 检查通用条件（原有逻辑）
+    fn check_generic_condition(node: &BtNode, instance: &BehaviorTreeInstance) -> Result<NodeStatus> {
         // 简单的条件检查：读取 Blackboard
         let key = node.config.get("key").and_then(|v| v.as_str());
         let expected = node.config.get("value");

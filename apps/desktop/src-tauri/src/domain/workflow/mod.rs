@@ -9,7 +9,12 @@ pub mod scheduler;
 pub mod models;
 pub mod script;  // 新增：线性脚本DSL
 
+#[cfg(test)]
 pub mod engine_tests;
+
+// 新增：集成测试
+#[cfg(test)]
+pub mod integration_tests;
 
 // 公开导出核心类型
 pub use script::{ScriptFlow, ScriptStep, ScriptInstance, AdvanceMode, AccountConfig};

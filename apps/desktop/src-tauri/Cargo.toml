@@ -31,7 +31,7 @@ rand = "0.8"
 reqwest = { version = "0.11", features = ["json"] }
 log = "0.4"
 ort = { version = "2.0.0-rc.10", features = ["download-binaries", "cuda"] }
-tokenizers = "0.22.1"
+tokenizers = { version = "0.22.1", default-features = false, features = ["onig", "progressbar", "http"] }
 ndarray = "0.17.1"
 petgraph = "0.8.3"
 rand_distr = "0.5.1"
@@ -66,5 +66,5 @@ panic = "abort"
 strip = true
 opt-level = "z" # Optimize for size (or "3" for speed)
 
-[patch.crates-io]
-esaxx-rs = { path = "vendor/esaxx-rs" }
+# [patch.crates-io]
+# esaxx-rs = { path = "vendor/esaxx-rs" }

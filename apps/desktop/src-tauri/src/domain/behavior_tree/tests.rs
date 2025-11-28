@@ -18,6 +18,18 @@ impl ActionContext for MockActionContext {
             _ => Ok(NodeStatus::Success),
         }
     }
+    
+    async fn detect_intent(&self, text: &str) -> anyhow::Result<crate::ai::IntentResult> {
+        // Mock implementation: 简单的关键词匹配
+        let intent = if text.contains("你好") || text.contains("hello") {
+            crate::ai::IntentResult::new(crate::ai::intents::GREETING, 0.95)
+        } else if text.contains("再见") || text.contains("bye") {
+            crate::ai::IntentResult::new(crate::ai::intents::FAREWELL, 0.95)
+        } else {
+            crate::ai::IntentResult::new(crate::ai::intents::UNKNOWN, 0.5)
+        };
+        Ok(intent)
+    }
 }
 
 fn create_test_instance(definition: &BehaviorTreeDefinition) -> BehaviorTreeInstance {
