@@ -11,97 +11,52 @@ This script demonstrates how to test the PBT functionality via Tauri commands.
 
 ### 1. Load Sample Definition
 
+**在浏览器控制台中执行（Tauri v2 方式）：**
+
 ```javascript
-// Read the conversation_flow.json sample
-const sampleDef = {
-  "name": "Simple Conversation Flow",
-  "description": "A simple behavior tree that responds to keywords in messages",
-  "root_node_id": "root",
-  "nodes": {
-    "root": {
-      "id": "root",
-      "node_type": "Selector",
-      "config": {
-        "children": ["help_branch", "default_reply"]
-      }
-    },
-    "help_branch": {
-      "id": "help_branch",
-      "node_type": "Sequence",
-      "config": {
-        "children": ["check_help", "send_help"]
-      }
-    },
-    "check_help": {
-      "id": "check_help",
-      "node_type": "Condition",
-      "config": {
-        "condition_type": "HasKeyword",
-        "keyword": "help"
-      }
-    },
-    "send_help": {
-      "id": "send_help",
-      "node_type": "Action",
-      "config": {
-        "action_type": "send_message",
-        "peer_id": "test_peer",
-        "content": "你好！我是自动客服。有什么可以帮助你的吗？"
-      }
-    },
-    "default_reply": {
-      "id": "default_reply",
-      "node_type": "Action",
-      "config": {
-        "action_type": "send_message",
-        "peer_id": "test_peer",
-        "content": "收到你的消息了，稍后回复。"
-      }
-    }
-  }
-};
+// 导入 Tauri invoke 函数
+const { invoke } = window.__TAURI_INTERNALS__;
 
-// Create the definition
-const definitionId = await window.__TAURI__.core.invoke('create_pbt_definition', {
-  name: sampleDef.name,
-  description: sampleDef.description,
-  rootNodeId: sampleDef.root_node_id,
-  nodesJson: JSON.stringify(sampleDef.nodes)
+// 1. 创建简单测试定义
+const defId = await invoke('create_simple_test_definition');
+console.log('✅ 定义创建成功，ID:', defId);
+
+// 2. 为测试账户创建实例
+const instanceId = await invoke('create_pbt_instance', {
+  definitionId: defId,
+  accountId: 'test-1'  // 使用实际的账户ID
 });
-
-console.log('Created definition:', definitionId);
+console.log('✅ 实例创建成功，ID:', instanceId);
 ```
 
-### 2. Create Instance for Account
+### 2. Check Instance Status
 
 ```javascript
-// Replace 'account_123' with your actual account ID
-const instanceId = await window.__TAURI__.core.invoke('create_pbt_instance', {
-  definitionId: definitionId,
-  accountId: 'account_123'
-});
-
-console.log('Created instance:', instanceId);
-```
-
-### 3. Check Instance Status
-
-```javascript
-const status = await window.__TAURI__.core.invoke('get_pbt_instance_status', {
+// 查看实例状态
+const status = await invoke('get_pbt_instance_status', {
   instanceId: instanceId
 });
-
-console.log('Instance status:', status);
+console.log('📊 实例状态:', status);
 ```
 
-### 4. Trigger Manual Tick
+### 3. Trigger Manual Tick
 
 ```javascript
-const result = await window.__TAURI__.core.invoke('trigger_pbt_tick', {
-  accountId: 'account_123'
+// 手动触发 tick
+const result = await invoke('trigger_pbt_tick', {
+  accountId: 'test-1'
 });
+console.log('⚡ Tick 结果:', result);
+```
 
-console.log('Tick result:', result);
+### 4. Get Active Instance
+
+```javascript
+// 获取活跃实例
+const active = await invoke('get_active_pbt_instance', {
+  accountId: 'test-1'
+});
+console.log('🔄 活跃实例:', active);
 ```
 
 ### 5. Verify in Logs
