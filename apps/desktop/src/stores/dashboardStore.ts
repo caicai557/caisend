@@ -2,14 +2,25 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
+export interface AccountStats {
+    message_count: number;
+    daily_traffic: number;
+    uptime_minutes: number;
+}
+
 export interface AccountState {
     id: string;
     name: string;
-    status: 'online' | 'offline' | 'busy' | 'error';
-    currentWorkflowId?: string | null;
-    currentNodeId?: string | null;
+    status: string; // 'Active' | 'Login' | 'Restricted' | 'Banned'
+    stats: AccountStats;
     lastActive: string;
-    messageCount: number;
+}
+
+export interface SystemStatus {
+    total_accounts: number;
+    online_count: number;
+    lifecycle_distribution: Record<string, number>;
+    accounts: any[]; // Raw snapshots from backend
 }
 
 export interface ExecutionLog {
@@ -23,6 +34,7 @@ export interface ExecutionLog {
 }
 
 interface DashboardState {
+    systemStatus: SystemStatus | null;
     accounts: AccountState[];
     logs: ExecutionLog[];
     selectedAccountId: string | null;
@@ -33,11 +45,12 @@ interface DashboardState {
     selectAccount: (id: string | null) => void;
 
     // Async actions
-    fetchInitialData: () => Promise<void>;
+    fetchSystemStatus: () => Promise<void>;
     subscribeToEvents: () => Promise<() => void>;
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
+    systemStatus: null,
     accounts: [],
     logs: [],
     selectedAccountId: null,
@@ -56,46 +69,58 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     selectAccount: (id) => set({ selectedAccountId: id }),
 
-    fetchInitialData: async () => {
+    fetchSystemStatus: async () => {
         try {
-            // 获取活跃工作流实例
-            const instances = await invoke<any[]>('list_active_instances');
+            const status = await invoke<SystemStatus>('get_system_status');
 
-            // 将实例映射为账号状态
-            const accounts: AccountState[] = instances.map(inst => ({
-                id: inst.contact_id,
-                name: `Contact ${inst.contact_id.slice(0, 6)}`,
-                status: 'busy',
-                currentWorkflowId: inst.definition_id,
-                currentNodeId: inst.current_node_id,
-                lastActive: inst.updated_at,
-                messageCount: 0,
+            const accounts: AccountState[] = (status.accounts || []).map((snap: any) => ({
+                id: snap.id,
+                name: `Account ${snap.id.slice(0, 6)}`,
+                status: snap.status,
+                stats: snap.stats,
+                lastActive: snap.last_heartbeat,
             }));
 
-            if (accounts.length === 0) {
-                // 如果没有活跃实例，添加一个空闲的示例账号用于展示
-                accounts.push({
-                    id: 'demo_account',
-                    name: '演示账号',
-                    status: 'online',
-                    lastActive: new Date().toISOString(),
-                    messageCount: 0,
-                });
-            }
-
-            set({ accounts });
+            set({
+                systemStatus: status,
+                accounts: accounts
+            });
         } catch (error) {
-            console.error('Failed to fetch initial data:', error);
+            console.error('Failed to fetch system status:', error);
         }
     },
 
     subscribeToEvents: async () => {
-        const unlisten = await listen<any>('workflow_update', (event) => {
+        const unlisteners: (() => void)[] = [];
+
+        // Subscribe to real-time system status updates
+        const statusUnlisten = await listen<any>('system_status_update', (event) => {
+            const status = event.payload;
+
+            const accounts: AccountState[] = (status.accounts || []).map((snap: any) => ({
+                id: snap.id,
+                name: `Account ${snap.id.slice(0, 6)}`,
+                status: snap.status,
+                stats: snap.stats,
+                lastActive: snap.last_heartbeat,
+            }));
+
+            set({
+                systemStatus: status,
+                accounts: accounts
+            });
+
+            console.log('[Dashboard] Received real-time status update:', status);
+        });
+
+        unlisteners.push(statusUnlisten);
+
+        // Subscribe to workflow updates
+        const workflowUnlisten = await listen<any>('workflow_update', (event) => {
             const { type, data } = event.payload;
 
             if (type === 'node_execution') {
                 get().updateAccount(data.contactId, {
-                    currentNodeId: data.nodeId,
                     lastActive: new Date().toISOString(),
                     status: 'busy'
                 });
@@ -110,12 +135,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
                     timestamp: new Date().toISOString()
                 });
             } else if (type === 'workflow_complete') {
-                get().updateAccount(data.contactId, {
-                    currentWorkflowId: null,
-                    currentNodeId: null,
-                    status: 'online'
-                });
-
                 get().addLog({
                     id: crypto.randomUUID(),
                     accountId: data.contactId,
@@ -128,6 +147,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             }
         });
 
-        return unlisten;
+        unlisteners.push(workflowUnlisten);
+
+        return () => {
+            unlisteners.forEach(unlisten => unlisten());
+        };
     },
 }));

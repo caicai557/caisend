@@ -1,4 +1,4 @@
-import { User, Circle, Clock } from 'lucide-react';
+import { User, Clock, Activity } from 'lucide-react';
 import type { AccountState } from '@/stores/dashboardStore';
 
 interface AccountCardProps {
@@ -9,25 +9,25 @@ interface AccountCardProps {
 
 export function AccountCard({ account, isSelected, onClick }: AccountCardProps) {
     const statusColor = {
-        online: 'bg-green-500',
-        offline: 'bg-gray-400',
-        busy: 'bg-yellow-500',
-        error: 'bg-red-500',
-    }[account.status];
+        'Active': 'bg-green-500',
+        'Login': 'bg-blue-500',
+        'Restricted': 'bg-yellow-500',
+        'Banned': 'bg-red-500',
+    }[account.status] || 'bg-gray-400';
 
     const statusText = {
-        online: '在线',
-        offline: '离线',
-        busy: '忙碌',
-        error: '异常',
-    }[account.status];
+        'Active': '活跃',
+        'Login': '登录中',
+        'Restricted': '受限',
+        'Banned': '封禁',
+    }[account.status] || account.status;
 
     return (
         <div
             onClick={onClick}
             className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${isSelected
-                    ? 'border-blue-500 bg-blue-50 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-blue-300'
+                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                : 'border-gray-200 bg-white hover:border-blue-300'
                 }`}
         >
             <div className="flex items-center justify-between mb-2">
@@ -44,19 +44,15 @@ export function AccountCard({ account, isSelected, onClick }: AccountCardProps) 
             </div>
 
             <div className="space-y-1">
-                {account.currentWorkflowId && (
-                    <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                        <Circle className="w-3 h-3 animate-pulse" />
-                        <span>执行中: {account.currentWorkflowId}</span>
-                    </div>
-                )}
-
                 <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
                     <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         <span>{new Date(account.lastActive).toLocaleTimeString()}</span>
                     </div>
-                    <span>{account.messageCount} 消息</span>
+                    <div className="flex items-center gap-1">
+                        <Activity className="w-3 h-3" />
+                        <span>{account.stats.message_count} 消息</span>
+                    </div>
                 </div>
             </div>
         </div>

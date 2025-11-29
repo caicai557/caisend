@@ -1,0 +1,115 @@
+{
+    "name": "Intent-Based Conversation Handler",
+    "description": "A behavior tree that responds based on detected user intent",
+    "root_node_id": "root",
+    "nodes": {
+        "root": {
+            "id": "root",
+            "node_type": "Selector",
+            "children": [
+                "handle_greeting",
+                "handle_question",
+                "handle_thanks",
+                "default_response"
+            ],
+            "config": {}
+        },
+        "handle_greeting": {
+            "id": "handle_greeting",
+            "node_type": "Sequence",
+            "children": [
+                "check_greeting_intent",
+                "send_greeting_reply"
+            ],
+            "config": {}
+        },
+        "check_greeting_intent": {
+            "id": "check_greeting_intent",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "check_intent",
+                "text": "${input_message}",
+                "intent": "greeting"
+            }
+        },
+        "send_greeting_reply": {
+            "id": "send_greeting_reply",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "send_message",
+                "peer_id": "${peer_id}",
+                "content": "Hello! How can I help you today?"
+            }
+        },
+        "handle_question": {
+            "id": "handle_question",
+            "node_type": "Sequence",
+            "children": [
+                "check_question_intent",
+                "send_question_reply"
+            ],
+            "config": {}
+        },
+        "check_question_intent": {
+            "id": "check_question_intent",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "check_intent",
+                "text": "${input_message}",
+                "intent": "question"
+            }
+        },
+        "send_question_reply": {
+            "id": "send_question_reply",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "send_message",
+                "peer_id": "${peer_id}",
+                "content": "That's a great question! Let me help you with that."
+            }
+        },
+        "handle_thanks": {
+            "id": "handle_thanks",
+            "node_type": "Sequence",
+            "children": [
+                "check_thanks_intent",
+                "send_thanks_reply"
+            ],
+            "config": {}
+        },
+        "check_thanks_intent": {
+            "id": "check_thanks_intent",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "check_intent",
+                "text": "${input_message}",
+                "intent": "thanks"
+            }
+        },
+        "send_thanks_reply": {
+            "id": "send_thanks_reply",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "send_message",
+                "peer_id": "${peer_id}",
+                "content": "You're welcome! Happy to help!"
+            }
+        },
+        "default_response": {
+            "id": "default_response",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "send_message",
+                "peer_id": "${peer_id}",
+                "content": "I received your message. How can I assist you?"
+            }
+        }
+    }
+}

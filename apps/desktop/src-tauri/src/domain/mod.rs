@@ -8,3 +8,4 @@ pub mod ports;
 // pub mod decision;
 pub mod behavior_tree;
 pub mod lifecycle;
+pub mod dashboard;

@@ -188,7 +188,7 @@ pub async fn telegram_check_code_status(
     Ok(status)
 }
 
-async fn check_login_status(page: &chromiumoxide::Page) -> Result<String, CoreError> {
+async fn check_login_status(page: &crate::adapters::browser::cdp_adapter::Page) -> Result<String, CoreError> {
     // Simple check logic
     if page.find_element("#column-center").await.is_ok() {
         return Ok("logged_in".to_string());

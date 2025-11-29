@@ -110,7 +110,7 @@ pub fn run() -> anyhow::Result<()> {
                 let (supervisor, _) = ractor::Actor::spawn(
                     Some("system-supervisor".to_string()),
                     crate::actors::supervisor::SystemSupervisor,
-                    (Arc::new(cdp_manager), bt_repo),
+                    (Arc::new(cdp_manager), bt_repo, app.handle().clone()),
                 ).await.expect("Failed to start System Supervisor");
                 app.manage(supervisor);
                 println!("=== SYSTEM SUPERVISOR STARTED ===");
@@ -302,6 +302,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::pbt::trigger_pbt_tick,
             commands::pbt::get_active_pbt_instance,
             commands::pbt::create_simple_test_definition,
+            commands::dashboard::get_system_status,
         ])
         .run(tauri::generate_context!())
         .context("Error while running Tauri application")?;

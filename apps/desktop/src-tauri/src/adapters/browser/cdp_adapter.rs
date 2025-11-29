@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use chromiumoxide::Browser;
+// use chromiumoxide::Browser;
 use chromiumoxide::cdp::js_protocol::runtime::{AddBindingParams, EvaluateParams};
 use futures::StreamExt;
 use serde::Deserialize;
@@ -12,20 +12,31 @@ use tokio::time::sleep;
 use crate::infrastructure::ContextHub;
 use tauri::{AppHandle, Manager};
 
+pub use chromiumoxide::Browser;
+pub use chromiumoxide::page::Page;
+pub use chromiumoxide::element::Element;
+
 pub const DEFAULT_WEBVIEW2_CDP_PORT: u16 = 9222;
 
 /// Manages CDP Browser connections for each account
 #[derive(Clone)]
 pub struct CdpManager {
     browsers: Arc<RwLock<HashMap<String, Arc<Browser>>>>,
-    app_handle: AppHandle,
+    app_handle: Option<AppHandle>,
 }
 
 impl CdpManager {
     pub fn new(app_handle: AppHandle) -> Self {
         Self {
             browsers: Arc::new(RwLock::new(HashMap::new())),
-            app_handle,
+            app_handle: Some(app_handle),
+        }
+    }
+
+    pub fn new_mock() -> Self {
+        Self {
+            browsers: Arc::new(RwLock::new(HashMap::new())),
+            app_handle: None,
         }
     }
 
@@ -447,5 +458,3 @@ impl CdpManager {
         }
     }
 }
-
-

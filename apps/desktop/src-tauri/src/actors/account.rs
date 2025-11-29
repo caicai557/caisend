@@ -9,6 +9,7 @@ use crate::domain::behavior_tree::engine::{BehaviorTreeEngine, ActionContext};
 use crate::domain::behavior_tree::state::NodeStatus;
 use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
 use crate::domain::lifecycle::{LifecycleManager, LifecycleStatus};
+use crate::infrastructure::network::{StealthClient, StealthConfig, BrowserType, TrafficShaper};
 use ractor::async_trait as async_trait;
 
 #[derive(Debug, Clone)]
@@ -18,7 +19,7 @@ pub struct AccountConfig {
     pub user_agent: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum AccountMessage {
     Connect { port: u16 },
     Disconnect,
@@ -27,6 +28,7 @@ pub enum AccountMessage {
     HealthCheck,
     Tick, // PBT Tick
     SetLifecycleStatus(LifecycleStatus), // 新增：生命周期状态转换
+    GetSnapshot(ractor::RpcReplyPort<crate::domain::dashboard::AccountSnapshot>),
 }
 
 pub struct AccountActor;
@@ -38,12 +40,18 @@ pub struct AccountState {
     pub is_connected: bool,
     pub circadian: CircadianRhythm,
     pub lifecycle_manager: LifecycleManager,
+    pub stealth_client: Arc<StealthClient>,
+    pub traffic_shaper: TrafficShaper,
+    pub stats: crate::domain::dashboard::AccountStats,
 }
 
 struct AccountActionContext {
     account_id: String,
     cdp_manager: Arc<CdpManager>,
     lifecycle_status: LifecycleStatus,
+    intent_classifier: Option<Arc<crate::ai::IntentClassifier>>,
+    stealth_client: Arc<StealthClient>,
+    traffic_shaper: TrafficShaper,
 }
 
 #[async_trait::async_trait]
@@ -115,6 +123,101 @@ impl ActionContext for AccountActionContext {
                     }
                 }
             }
+            "detect_intent" => {
+                // Detect intent from text parameter
+                let text = params.get("text").and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing 'text' parameter for detect_intent"))?;
+                
+                if let Some(classifier) = &self.intent_classifier {
+                    match classifier.classify(text) {
+                        Ok(intent_result) => {
+                            tracing::info!(
+                                "[AccountActionContext] Detected intent: {} (confidence: {:.2})",
+                                intent_result.label,
+                                intent_result.confidence
+                            );
+                            
+                            // Store in blackboard would require blackboard access
+                            // For now, we'll return success and intent can be stored by caller
+                            Ok(NodeStatus::Success)
+                        }
+                        Err(e) => {
+                            tracing::error!("Intent classification failed: {}", e);
+                            Ok(NodeStatus::Failure)
+                        }
+                    }
+                } else {
+                    tracing::warn!("IntentClassifier not available");
+                    Ok(NodeStatus::Failure)
+                }
+            }
+            "check_intent" => {
+                // Check if detected intent matches expected intent
+                let expected_intent = params.get("intent").and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing 'intent' parameter for check_intent"))?;
+                
+                let text = params.get("text").and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing 'text' parameter for check_intent"))?;
+                
+                if let Some(classifier) = &self.intent_classifier {
+                    match classifier.classify(text) {
+                        Ok(intent_result) => {
+                            if intent_result.label == expected_intent && intent_result.confidence > 0.5 {
+                                tracing::debug!(
+                                    "Intent matched: {} (confidence: {:.2})",
+                                    intent_result.label,
+                                    intent_result.confidence
+                                );
+                                Ok(NodeStatus::Success)
+                            } else {
+                                tracing::debug!(
+                                    "Intent mismatch: expected {}, got {} (confidence: {:.2})",
+                                    expected_intent,
+                                    intent_result.label,
+                                    intent_result.confidence
+                                );
+                                Ok(NodeStatus::Failure)
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Intent classification failed: {}", e);
+                            Ok(NodeStatus::Failure)
+                        }
+                    }
+                } else {
+                    tracing::warn!("IntentClassifier not available");
+                    Ok(NodeStatus::Failure)
+                }
+            }
+            "http_request" => {
+                let url = params.get("url").and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow::anyhow!("Missing 'url' parameter"))?;
+                let method = params.get("method").and_then(|v| v.as_str()).unwrap_or("GET");
+                let body = params.get("body").and_then(|v| v.as_str()).map(|s| s.to_string());
+                
+                tracing::info!("[Stealth] Executing {} request to {}", method, url);
+                
+                // Use traffic shaper for human-like delay
+                let response = self.traffic_shaper.execute_with_jitter(|| async {
+                    match method {
+                        "GET" => self.stealth_client.get(url).await,
+                        "POST" => self.stealth_client.post(url, body).await,
+                        _ => Err(anyhow::anyhow!("Unsupported method: {}", method)),
+                    }
+                }).await;
+                
+                match response {
+                    Ok(resp) => {
+                        tracing::info!("[Stealth] Request successful: status {}", resp.status());
+                        // TODO: Store response in blackboard if needed
+                        Ok(NodeStatus::Success)
+                    }
+                    Err(e) => {
+                        tracing::error!("[Stealth] Request failed: {}", e);
+                        Ok(NodeStatus::Failure)
+                    }
+                }
+            }
             _ => {
                 tracing::warn!("Unknown action type: {}", action_type);
                 Ok(NodeStatus::Failure)
@@ -167,13 +270,25 @@ impl Actor for AccountActor {
             }
         });
 
+        // Initialize StealthClient
+        let stealth_config = StealthConfig {
+            proxy: config.proxy.clone(),
+            ..Default::default()
+        };
+        
+        let stealth_client = StealthClient::new(stealth_config)
+            .map_err(|e| ActorProcessingErr::from(e.to_string()))?;
+
         Ok(AccountState {
             config,
             cdp_manager,
             bt_repo,
             is_connected: false,
-            circadian: CircadianRhythm::default(), // TODO: Load from config
+            circadian: CircadianRhythm::default(),
             lifecycle_manager: LifecycleManager::new(LifecycleStatus::Login),
+            stealth_client: Arc::new(stealth_client),
+            traffic_shaper: TrafficShaper::default(),
+            stats: crate::domain::dashboard::AccountStats::default(),
         })
     }
 
@@ -260,6 +375,9 @@ impl Actor for AccountActor {
                                 account_id: state.config.account_id.clone(),
                                 cdp_manager: state.cdp_manager.clone(),
                                 lifecycle_status: state.lifecycle_manager.current_status(),
+                                intent_classifier: None, // TODO: Initialize IntentClassifier with templates
+                                stealth_client: state.stealth_client.clone(),
+                                traffic_shaper: state.traffic_shaper.clone(),
                             };
 
                             // 4. Tick
@@ -296,6 +414,17 @@ impl Actor for AccountActor {
                         // Future: Resume PBT instance if needed
                     }
                 }
+            }
+            AccountMessage::GetSnapshot(reply) => {
+                let snapshot = crate::domain::dashboard::AccountSnapshot {
+                    id: state.config.account_id.clone(),
+                    status: state.lifecycle_manager.current_status(),
+                    is_connected: state.is_connected,
+                    current_action: None, // TODO: Track current action
+                    last_heartbeat: chrono::Utc::now(), // TODO: Track actual heartbeat
+                    stats: state.stats.clone(),
+                };
+                let _ = reply.send(snapshot);
             }
         }
         Ok(())
