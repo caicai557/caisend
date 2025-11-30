@@ -101,6 +101,7 @@ impl SessionManager {
                 account_id: account_id_clone.clone(),
                 proxy: None, // TODO: Load from DB
                 user_agent: None,
+                is_canary: false,
             };
             
             if let Err(e) = supervisor.cast(crate::actors::supervisor::SupervisorMessage::SpawnAccount { config }) {

@@ -28,12 +28,19 @@ pub enum BtNodeType {
     // Composites (组合节点)
     Sequence,       // 顺序执行 (AND): 所有子节点成功才成功，遇到失败/运行则停止
     Selector,       // 选择执行 (OR): 只要有一个子节点成功就成功，遇到成功/运行则停止
+    RandomSelector, // 随机选择: 随机选择一个子节点执行
     Parallel,       // 并行执行: 同时执行所有子节点 (简化版可串行模拟并行状态)
 
     // Decorators (装饰节点)
     Inverter,       // 取反: 成功变失败，失败变成功
     Repeater,       // 重复: 重复执行子节点 N 次或无限次
     Retry,          // 重试: 子节点失败时重试 N 次
+    ForceSuccess,   // 强制成功: 无论子节点返回什么都返回成功
+    ForceFailure,   // 强制失败: 无论子节点返回什么都返回失败
+    UntilSuccess,   // 直到成功: 重复执行直到子节点返回成功
+    UntilFailure,   // 直到失败: 重复执行直到子节点返回失败
+    Timeout,        // 超时: 限制子节点最大执行时间
+    RateLimiter,    // 频率限制: 限制子节点执行频率
 
     // Leafs (叶子节点)
     Action,         // 动作: 执行具体任务 (如 SendMessage, Click)

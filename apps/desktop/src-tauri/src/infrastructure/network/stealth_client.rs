@@ -2,6 +2,7 @@ use anyhow::Result;
 use reqwest::{Client, header};
 use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use super::http2_config::Http2Settings;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum BrowserType {
@@ -37,6 +38,7 @@ pub struct StealthConfig {
     pub browser_type: BrowserType,
     pub proxy: Option<String>,
     pub timeout_seconds: u64,
+    pub http2_settings: Http2Settings,
 }
 
 impl Default for StealthConfig {
@@ -45,6 +47,7 @@ impl Default for StealthConfig {
             browser_type: BrowserType::default(),
             proxy: None,
             timeout_seconds: 30,
+            http2_settings: Http2Settings::default(),
         }
     }
 }
@@ -63,7 +66,10 @@ impl StealthClient {
         
         let mut builder = Client::builder()
             .default_headers(headers)
-            .timeout(Duration::from_secs(config.timeout_seconds));
+            .timeout(Duration::from_secs(config.timeout_seconds))
+            .http2_initial_stream_window_size(config.http2_settings.initial_stream_window_size)
+            .http2_initial_connection_window_size(config.http2_settings.initial_connection_window_size)
+            .http2_max_concurrent_streams(config.http2_settings.max_concurrent_streams);
 
         // Set proxy if configured
         if let Some(proxy_url) = &config.proxy {

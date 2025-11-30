@@ -10,6 +10,8 @@ use crate::domain::behavior_tree::state::NodeStatus;
 use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
 use crate::domain::lifecycle::{LifecycleManager, LifecycleStatus};
 use crate::infrastructure::network::{StealthClient, StealthConfig, BrowserType, TrafficShaper};
+use crate::domain::canary::service::CanaryService;
+use crate::ai::IntentClassifier;
 use ractor::async_trait as async_trait;
 
 #[derive(Debug, Clone)]
@@ -17,7 +19,9 @@ pub struct AccountConfig {
     pub account_id: String,
     pub proxy: Option<String>,
     pub user_agent: Option<String>,
+    pub is_canary: bool,
 }
+
 
 #[derive(Debug)]
 pub enum AccountMessage {
@@ -41,6 +45,8 @@ pub struct AccountState {
     pub circadian: CircadianRhythm,
     pub lifecycle_manager: LifecycleManager,
     pub stealth_client: Arc<StealthClient>,
+    pub canary_service: Arc<CanaryService>,
+    pub intent_classifier: Option<Arc<IntentClassifier>>,
     pub traffic_shaper: TrafficShaper,
     pub stats: crate::domain::dashboard::AccountStats,
 }
@@ -279,6 +285,26 @@ impl Actor for AccountActor {
         let stealth_client = StealthClient::new(stealth_config)
             .map_err(|e| ActorProcessingErr::from(e.to_string()))?;
 
+        // Initialize CanaryService
+        let canary_service = Arc::new(CanaryService::new(bt_repo.pool().clone()));
+
+        // Initialize IntentClassifier (Action 2: NLP Integration)
+        let intent_classifier = {
+            let model_path = "models/bge-small-en-v1.5.onnx";
+            let tokenizer_path = "models/tokenizer.json";
+            match crate::ai::inference::CognitionService::new(model_path, tokenizer_path) {
+                Ok(cognition) => {
+                    let classifier = IntentClassifier::new(Arc::new(cognition));
+                    tracing::info!("[AccountActor] IntentClassifier initialized successfully");
+                    Some(Arc::new(classifier))
+                }
+                Err(e) => {
+                    tracing::warn!("[AccountActor] Failed to initialize IntentClassifier: {}", e);
+                    None
+                }
+            }
+        };
+
         Ok(AccountState {
             config,
             cdp_manager,
@@ -287,6 +313,8 @@ impl Actor for AccountActor {
             circadian: CircadianRhythm::default(),
             lifecycle_manager: LifecycleManager::new(LifecycleStatus::Login),
             stealth_client: Arc::new(stealth_client),
+            canary_service,
+            intent_classifier,
             traffic_shaper: TrafficShaper::default(),
             stats: crate::domain::dashboard::AccountStats::default(),
         })
@@ -375,7 +403,7 @@ impl Actor for AccountActor {
                                 account_id: state.config.account_id.clone(),
                                 cdp_manager: state.cdp_manager.clone(),
                                 lifecycle_status: state.lifecycle_manager.current_status(),
-                                intent_classifier: None, // TODO: Initialize IntentClassifier with templates
+                                intent_classifier: state.intent_classifier.clone(),
                                 stealth_client: state.stealth_client.clone(),
                                 traffic_shaper: state.traffic_shaper.clone(),
                             };
@@ -384,6 +412,22 @@ impl Actor for AccountActor {
                             match BehaviorTreeEngine::tick(&mut instance, &definition, &context).await {
                                 Ok(status) => {
                                     tracing::debug!("[AccountActor] Tick success, status: {:?}", status);
+                                    
+                                    // Canary Metrics: Record Session Outcome
+                                    if instance.status == crate::domain::behavior_tree::state::TreeStatus::Completed {
+                                        let duration = (chrono::Utc::now() - instance.created_at).num_milliseconds();
+                                        let _ = state.canary_service.record_success(
+                                            &state.config.account_id, 
+                                            None, // TODO: Profile Type
+                                            duration
+                                        ).await;
+                                    } else if instance.status == crate::domain::behavior_tree::state::TreeStatus::Failed {
+                                        let _ = state.canary_service.record_failure(
+                                            &state.config.account_id, 
+                                            None
+                                        ).await;
+                                    }
+
                                     // 5. Save state
                                     if let Err(e) = state.bt_repo.save_instance(&instance).await {
                                         tracing::error!("[AccountActor] Failed to save instance: {}", e);

@@ -1,0 +1,64 @@
+{
+    "id": "login_and_browse_v1",
+    "name": "Login and Browse Homepage",
+    "description": "First practical PBT: Verify connection, navigate to homepage, extract page info",
+    "root_node_id": "root",
+    "nodes": {
+        "root": {
+            "id": "root",
+            "node_type": "Sequence",
+            "children": [
+                "check_connection",
+                "check_lifecycle",
+                "navigate_home",
+                "wait_load",
+                "extract_info"
+            ],
+            "config": {}
+        },
+        "check_connection": {
+            "id": "check_connection",
+            "node_type": "Condition",
+            "children": [],
+            "config": {
+                "condition_type": "check_lifecycle",
+                "status": "active"
+            }
+        },
+        "check_lifecycle": {
+            "id": "check_lifecycle",
+            "node_type": "Condition",
+            "children": [],
+            "config": {
+                "condition_type": "check_lifecycle",
+                "status": "active"
+            }
+        },
+        "navigate_home": {
+            "id": "navigate_home",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "navigate",
+                "url": "https://web.telegram.org/z/"
+            }
+        },
+        "wait_load": {
+            "id": "wait_load",
+            "node_type": "Wait",
+            "children": [],
+            "config": {
+                "duration_ms": 2000
+            }
+        },
+        "extract_info": {
+            "id": "extract_info",
+            "node_type": "Action",
+            "children": [],
+            "config": {
+                "action_type": "extract_page_info",
+                "selector": "title"
+            }
+        }
+    }
+}

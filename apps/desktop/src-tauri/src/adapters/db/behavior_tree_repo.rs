@@ -15,15 +15,12 @@ impl BehaviorTreeRepository {
     }
 
     pub fn new_mock() -> Self {
-        // This panics if not in async context, but tests are async.
-        // However, creating a pool requires async.
-        // We might need to return a future or use a lazy static?
-        // Actually, for unit tests, we usually pass the pool.
-        // But the test calls `BehaviorTreeRepository::new_mock()`.
-        // Let's make it async or use a blocking way if possible (sqlite in-memory is fast).
-        // SqlitePool::connect_lazy("sqlite::memory:") is synchronous!
         let pool = SqlitePool::connect_lazy("sqlite::memory:").unwrap();
         Self { pool }
+    }
+
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
     }
 
     pub async fn save_definition(&self, def: &BehaviorTreeDefinition) -> Result<(), CoreError> {

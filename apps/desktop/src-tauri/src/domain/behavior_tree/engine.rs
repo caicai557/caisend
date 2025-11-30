@@ -73,9 +73,19 @@ impl BehaviorTreeEngine {
         let status = match node.node_type {
             BtNodeType::Sequence => Self::execute_sequence(node, instance, definition, context).await?,
             BtNodeType::Selector => Self::execute_selector(node, instance, definition, context).await?,
+            BtNodeType::RandomSelector => Self::execute_random_selector(node, instance, definition, context).await?,
             BtNodeType::Action => Self::execute_action(node, instance, context).await?,
             BtNodeType::Condition => Self::execute_condition(node, instance)?,
             BtNodeType::Wait => Self::execute_wait(node, instance)?,
+            BtNodeType::Inverter => Self::execute_inverter(node, instance, definition, context).await?,
+            BtNodeType::Repeater => Self::execute_repeater(node, instance, definition, context).await?,
+            BtNodeType::Retry => Self::execute_retry(node, instance, definition, context).await?,
+            BtNodeType::ForceSuccess => Self::execute_force_success(node, instance, definition, context).await?,
+            BtNodeType::ForceFailure => Self::execute_force_failure(node, instance, definition, context).await?,
+            BtNodeType::UntilSuccess => Self::execute_until_success(node, instance, definition, context).await?,
+            BtNodeType::UntilFailure => Self::execute_until_failure(node, instance, definition, context).await?,
+            BtNodeType::Timeout => Self::execute_timeout(node, instance, definition, context).await?,
+            BtNodeType::RateLimiter => Self::execute_rate_limiter(node, instance, definition, context).await?,
             _ => NodeStatus::Success, // 暂不支持的节点默认成功
         };
 
@@ -255,5 +265,385 @@ impl BehaviorTreeEngine {
         );
         
         Ok(NodeStatus::Running)
+    }
+
+    // ============ 新增装饰节点 ============
+
+    async fn execute_force_success(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        if let Some(child_id) = node.children.first() {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            match child_status {
+                NodeStatus::Running => Ok(NodeStatus::Running),
+                _ => Ok(NodeStatus::Success),
+            }
+        } else {
+            Ok(NodeStatus::Success)
+        }
+    }
+
+    async fn execute_timeout(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let timeout_ms = node.config.get("timeout_ms").and_then(|v| v.as_u64()).unwrap_or(5000);
+        
+        if let Some(state) = instance.node_states.get(&node.id) {
+            let start_time_str = state.context.get("start_time").and_then(|v| v.as_str());
+            if let Some(start_time_str) = start_time_str {
+                if let Ok(start_time) = chrono::DateTime::parse_from_rfc3339(start_time_str) {
+                    let now = Utc::now();
+                    if now.signed_duration_since(start_time).num_milliseconds() >= timeout_ms as i64 {
+                        instance.node_states.remove(&node.id);
+                        return Ok(NodeStatus::Failure);
+                    }
+                }
+            }
+        } else {
+            instance.node_states.insert(
+                node.id.clone(),
+                NodeRuntimeState {
+                    status: NodeStatus::Running,
+                    context: serde_json::json!({ "start_time": Utc::now().to_rfc3339() }),
+                },
+            );
+        }
+
+        if let Some(child_id) = node.children.first() {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            match child_status {
+                NodeStatus::Running => Ok(NodeStatus::Running),
+                _ => {
+                    instance.node_states.remove(&node.id);
+                    Ok(child_status)
+                }
+            }
+        } else {
+            Ok(NodeStatus::Success)
+        }
+    }
+
+    async fn execute_rate_limiter(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let min_interval_ms = node.config.get("min_interval_ms").and_then(|v| v.as_u64()).unwrap_or(1000);
+        
+        if let Some(state) = instance.node_states.get(&node.id) {
+            let last_exec_str = state.context.get("last_execution").and_then(|v| v.as_str());
+            if let Some(last_exec_str) = last_exec_str {
+                if let Ok(last_exec) = chrono::DateTime::parse_from_rfc3339(last_exec_str) {
+                    let now = Utc::now();
+                    let elapsed = now.signed_duration_since(last_exec).num_milliseconds();
+                    if elapsed < min_interval_ms as i64 {
+                        return Ok(NodeStatus::Running);
+                    }
+                }
+            }
+        }
+
+        if let Some(child_id) = node.children.first() {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            
+            if child_status != NodeStatus::Running {
+                instance.node_states.insert(
+                    node.id.clone(),
+                    NodeRuntimeState {
+                        status: NodeStatus::Success,
+                        context: serde_json::json!({ "last_execution": Utc::now().to_rfc3339() }),
+                    },
+                );
+            }
+            
+            Ok(child_status)
+        } else {
+            Ok(NodeStatus::Success)
+        }
+    }
+
+    async fn execute_inverter(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        if let Some(child_id) = node.children.first() {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            match child_status {
+                NodeStatus::Success => Ok(NodeStatus::Failure),
+                NodeStatus::Failure => Ok(NodeStatus::Success),
+                NodeStatus::Running => Ok(NodeStatus::Running),
+                NodeStatus::Skipped => Ok(NodeStatus::Skipped),
+            }
+        } else {
+            Ok(NodeStatus::Success)
+        }
+    }
+
+    async fn execute_repeater(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let max_loops = node.config.get("max_loops").and_then(|v| v.as_i64()).unwrap_or(-1);
+        
+        let mut current_loop = 0;
+        if let Some(state) = instance.node_states.get(&node.id) {
+            current_loop = state.context.get("current_loop").and_then(|v| v.as_i64()).unwrap_or(0);
+        }
+
+        if let Some(child_id) = node.children.first() {
+            if max_loops >= 0 && current_loop >= max_loops {
+                return Ok(NodeStatus::Success);
+            }
+
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+
+            match child_status {
+                NodeStatus::Running => {
+                    instance.node_states.insert(
+                        node.id.clone(),
+                        NodeRuntimeState {
+                            status: NodeStatus::Running,
+                            context: serde_json::json!({ "current_loop": current_loop }),
+                        },
+                    );
+                    Ok(NodeStatus::Running)
+                }
+                NodeStatus::Success | NodeStatus::Failure => {
+                    current_loop += 1;
+                    
+                    if max_loops >= 0 && current_loop >= max_loops {
+                        Ok(NodeStatus::Success)
+                    } else {
+                         instance.node_states.insert(
+                            node.id.clone(),
+                            NodeRuntimeState {
+                                status: NodeStatus::Running,
+                                context: serde_json::json!({ "current_loop": current_loop }),
+                            },
+                        );
+                        Ok(NodeStatus::Running)
+                    }
+                }
+                NodeStatus::Skipped => Ok(NodeStatus::Skipped),
+            }
+        } else {
+            Ok(NodeStatus::Success)
+        }
+    }
+
+    async fn execute_retry(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let max_retries = node.config.get("max_retries").and_then(|v| v.as_i64()).unwrap_or(3);
+        
+        let mut current_retry = 0;
+        if let Some(state) = instance.node_states.get(&node.id) {
+            current_retry = state.context.get("current_retry").and_then(|v| v.as_i64()).unwrap_or(0);
+        }
+
+        if let Some(child_id) = node.children.first() {
+             let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+
+             match child_status {
+                 NodeStatus::Success => Ok(NodeStatus::Success),
+                 NodeStatus::Running => {
+                     instance.node_states.insert(
+                        node.id.clone(),
+                        NodeRuntimeState {
+                            status: NodeStatus::Running,
+                            context: serde_json::json!({ "current_retry": current_retry }),
+                        },
+                    );
+                    Ok(NodeStatus::Running)
+                 }
+                 NodeStatus::Failure => {
+                     current_retry += 1;
+                     if current_retry > max_retries {
+                         Ok(NodeStatus::Failure)
+                     } else {
+                         instance.node_states.insert(
+                            node.id.clone(),
+                            NodeRuntimeState {
+                                status: NodeStatus::Running,
+                                context: serde_json::json!({ "current_retry": current_retry }),
+                            },
+                        );
+                        Ok(NodeStatus::Running)
+                     }
+                 }
+                 NodeStatus::Skipped => Ok(NodeStatus::Skipped),
+             }
+        } else {
+            Ok(NodeStatus::Failure)
+        }
+    }
+
+    async fn execute_force_failure(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        if let Some(child_id) = node.children.first() {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            match child_status {
+                NodeStatus::Running => Ok(NodeStatus::Running),
+                _ => Ok(NodeStatus::Failure),
+            }
+        } else {
+            Ok(NodeStatus::Failure)
+        }
+    }
+
+    async fn execute_until_success(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let max_attempts = node.config.get("max_attempts").and_then(|v| v.as_i64()).unwrap_or(-1);
+        
+        let mut current_attempt = 0;
+        if let Some(state) = instance.node_states.get(&node.id) {
+            current_attempt = state.context.get("current_attempt").and_then(|v| v.as_i64()).unwrap_or(0);
+        }
+
+        if let Some(child_id) = node.children.first() {
+            if max_attempts >= 0 && current_attempt >= max_attempts {
+                return Ok(NodeStatus::Failure);
+            }
+
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            current_attempt += 1;
+
+            match child_status {
+                NodeStatus::Success => Ok(NodeStatus::Success),
+                NodeStatus::Running => {
+                    instance.node_states.insert(
+                        node.id.clone(),
+                        NodeRuntimeState {
+                            status: NodeStatus::Running,
+                            context: serde_json::json!({ "current_attempt": current_attempt }),
+                        },
+                    );
+                    Ok(NodeStatus::Running)
+                }
+                NodeStatus::Failure | NodeStatus::Skipped => {
+                    instance.node_states.insert(
+                        node.id.clone(),
+                        NodeRuntimeState {
+                            status: NodeStatus::Running,
+                            context: serde_json::json!({ "current_attempt": current_attempt }),
+                        },
+                    );
+                    Ok(NodeStatus::Running)
+                }
+            }
+        } else {
+            Ok(NodeStatus::Failure)
+        }
+    }
+
+    async fn execute_until_failure(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let max_attempts = node.config.get("max_attempts").and_then(|v| v.as_i64()).unwrap_or(-1);
+        
+        let mut current_attempt = 0;
+        if let Some(state) = instance.node_states.get(&node.id) {
+            current_attempt = state.context.get("current_attempt").and_then(|v| v.as_i64()).unwrap_or(0);
+        }
+
+        if let Some(child_id) = node.children.first() {
+            if max_attempts >= 0 && current_attempt >= max_attempts {
+                return Ok(NodeStatus::Success);
+            }
+
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            current_attempt += 1;
+
+            match child_status {
+                NodeStatus::Failure => Ok(NodeStatus::Success),
+                NodeStatus::Running => {
+                    instance.node_states.insert(
+                        node.id.clone(),
+                        NodeRuntimeState {
+                            status: NodeStatus::Running,
+                            context: serde_json::json!({ "current_attempt": current_attempt }),
+                        },
+                    );
+                    Ok(NodeStatus::Running)
+                }
+                NodeStatus::Success | NodeStatus::Skipped => {
+                    instance.node_states.insert(
+                        node.id.clone(),
+                        NodeRuntimeState {
+                            status: NodeStatus::Running,
+                            context: serde_json::json!({ "current_attempt": current_attempt }),
+                        },
+                    );
+                    Ok(NodeStatus::Running)
+                }
+            }
+        } else {
+            Ok(NodeStatus::Success)
+        }
+    }
+
+    async fn execute_random_selector(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        if node.children.is_empty() {
+            return Ok(NodeStatus::Failure);
+        }
+
+        let selected_index = if let Some(state) = instance.node_states.get(&node.id) {
+            state.context.get("selected_index").and_then(|v| v.as_u64()).unwrap_or(0) as usize
+        } else {
+            use rand::Rng;
+            let mut rng = rand::thread_rng();
+            let index = rng.gen_range(0..node.children.len());
+            
+            instance.node_states.insert(
+                node.id.clone(),
+                NodeRuntimeState {
+                    status: NodeStatus::Running,
+                    context: serde_json::json!({ "selected_index": index }),
+                },
+            );
+            index
+        };
+
+        if let Some(child_id) = node.children.get(selected_index) {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            
+            if child_status != NodeStatus::Running {
+                instance.node_states.remove(&node.id);
+            }
+            
+            Ok(child_status)
+        } else {
+            Ok(NodeStatus::Failure)
+        }
     }
 }

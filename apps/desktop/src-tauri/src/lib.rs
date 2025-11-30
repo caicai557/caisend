@@ -302,6 +302,8 @@ pub fn run() -> anyhow::Result<()> {
             commands::pbt::trigger_pbt_tick,
             commands::pbt::get_active_pbt_instance,
             commands::pbt::create_simple_test_definition,
+            commands::pbt::load_pbt_from_file,
+            commands::pbt::load_and_execute_pbt,
             commands::dashboard::get_system_status,
         ])
         .run(tauri::generate_context!())

@@ -222,3 +222,48 @@ pub async fn create_simple_test_definition(
 
     Ok(definition.id)
 }
+
+/// 从 JSON 文件加载并创建 PBT 定义
+#[tauri::command]
+pub async fn load_pbt_from_file(
+    repo: State<'_, Arc<BehaviorTreeRepository>>,
+    filename: String, // e.g. "login_and_browse.json"
+) -> Result<String, String> {
+    // Build path to pbt_samples directory
+    let pbt_dir = std::env::current_dir()
+        .map_err(|e| format!("Failed to get current directory: {}", e))?
+        .join("pbt_samples");
+    
+    let file_path = pbt_dir.join(&filename);
+    
+    // Read JSON file
+    let json_content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read file {}: {}", filename, e))?;
+    
+    // Parse JSON to BehaviorTreeDefinition
+    let definition: BehaviorTreeDefinition = serde_json::from_str(&json_content)
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+    
+    // Save to database
+    repo.save_definition(&definition)
+        .await
+        .map_err(|e| format!("Failed to save definition: {}", e))?;
+    
+    Ok(definition.id)
+}
+
+/// 加载 PBT 并为账户创建实例（一步到位）
+#[tauri::command]
+pub async fn load_and_execute_pbt(
+    repo: State<'_, Arc<BehaviorTreeRepository>>,
+    filename: String,
+    account_id: String,
+) -> Result<(String, String), String> {
+    // Load definition from file
+    let definition_id = load_pbt_from_file(repo.clone(), filename).await?;
+    
+    // Create instance for account
+    let instance_id = create_pbt_instance(repo, definition_id.clone(), account_id).await?;
+    
+    Ok((definition_id, instance_id))
+}
