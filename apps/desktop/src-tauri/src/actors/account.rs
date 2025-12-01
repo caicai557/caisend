@@ -9,7 +9,7 @@ use crate::domain::behavior_tree::engine::{BehaviorTreeEngine, ActionContext};
 use crate::domain::behavior_tree::state::NodeStatus;
 use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
 use crate::domain::lifecycle::{LifecycleManager, LifecycleStatus};
-use crate::infrastructure::network::{StealthClient, StealthConfig, BrowserType, TrafficShaper};
+use crate::infrastructure::network::{StealthClient, StealthConfig, TrafficShaper};
 use crate::domain::canary::service::CanaryService;
 use crate::ai::IntentClassifier;
 use ractor::async_trait as async_trait;

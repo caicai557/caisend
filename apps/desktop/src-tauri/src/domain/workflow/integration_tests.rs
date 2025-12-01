@@ -6,7 +6,6 @@
 // - 意图识别在PBT中正常工作
 
 #[cfg(test)]
-mod integration_tests {
     use crate::domain::workflow::engine::*;
     use crate::domain::workflow::schema::*;
     use crate::domain::workflow::instance::*;
@@ -90,99 +89,95 @@ mod integration_tests {
         // 4. 恢复WorkflowInstance
         // 5. 验证PBT从中断点继续执行
     }
-}
 
-// Helper函数用于创建测试用的PBT定义
-#[cfg(test)]
-fn create_greeting_detection_tree() -> BehaviorTreeDefinition {
-    let mut nodes = HashMap::new();
-    
-    // Root: Sequence
-    nodes.insert("root".to_string(), BtNode {
-        id: "root".to_string(),
-        node_type: BtNodeType::Sequence,
-        children: vec!["detect".to_string(), "check".to_string()],
-        config: serde_json::json!({}),
-    });
-    
-    // Detect Intent
-    nodes.insert("detect".to_string(), BtNode {
-        id: "detect".to_string(),
-        node_type: BtNodeType::Action,
-        children: vec![],
-        config: serde_json::json!({
-            "action_type": "DetectIntent",
-            "text": "{{input_message}}"  // 从blackboard获取
-        }),
-    });
-    
-    // Check Intent Match
-    nodes.insert("check".to_string(), BtNode {
-        id: "check".to_string(),
-        node_type: BtNodeType::Condition,
-        children: vec![],
-        config: serde_json::json!({
-            "type": "intent_match",
-            "expected_intent": "greeting",
-            "confidence_threshold": 0.7
-        }),
-    });
-    
-    BehaviorTreeDefinition {
-        id: "greeting_detection".to_string(),
-        name: "Greeting Detection Tree".to_string(),
-        description: Some("Detects greeting intent".to_string()),
-        root_node_id: "root".to_string(),
-        nodes,
-    }
-}
-
-#[cfg(test)]
-fn create_workflow_with_pbt(pbt_id: &str) -> WorkflowDefinition {
-    WorkflowDefinition {
-        id: "test_workflow".to_string(),
-        name: "Test Workflow".to_string(),
-        description: Some("Workflow that uses PBT".to_string()),
-        trigger: TriggerConfig {
-            trigger_type: TriggerType::Message,
+    // Helper函数用于创建测试用的PBT定义
+    fn create_greeting_detection_tree() -> BehaviorTreeDefinition {
+        let mut nodes = HashMap::new();
+        
+        // Root: Sequence
+        nodes.insert("root".to_string(), BtNode {
+            id: "root".to_string(),
+            node_type: BtNodeType::Sequence,
+            children: vec!["detect".to_string(), "check".to_string()],
             config: serde_json::json!({}),
-        },
-        nodes: vec![
-            WorkflowNode {
-                id: "start".to_string(),
-                node_type: NodeType::Start,
-                config: serde_json::json!({}),
-            },
-            WorkflowNode {
-                id: "pbt_node".to_string(),
-                node_type: NodeType::ExecutePbt,
-                config: serde_json::json!({
-                    "tree_id": pbt_id,
-                    "context_mapping": {
-                        "input_message": "{{trigger.message}}"
-                    }
-                }),
-            },
-            WorkflowNode {
-                id: "end".to_string(),
-                node_type: NodeType::End,
-                config: serde_json::json!({}),
-            },
-        ],
-        edges: vec![
-            WorkflowEdge {
-                id: "e1".to_string(),
-                from: "start".to_string(),
-                to: "pbt_node".to_string(),
-                condition: None,
-            },
-            WorkflowEdge {
-                id: "e2".to_string(),
-                from: "pbt_node".to_string(),
-                to: "end".to_string(),
-                condition: None,
-            },
-        ],
-        initial_node_id: "start".to_string(),
+        });
+        
+        // Detect Intent
+        nodes.insert("detect".to_string(), BtNode {
+            id: "detect".to_string(),
+            node_type: BtNodeType::Action,
+            children: vec![],
+            config: serde_json::json!({
+                "action_type": "DetectIntent",
+                "text": "{{input_message}}"  // 从blackboard获取
+            }),
+        });
+        
+        // Check Intent Match
+        nodes.insert("check".to_string(), BtNode {
+            id: "check".to_string(),
+            node_type: BtNodeType::Condition,
+            children: vec![],
+            config: serde_json::json!({
+                "type": "intent_match",
+                "expected_intent": "greeting",
+                "confidence_threshold": 0.7
+            }),
+        });
+        
+        BehaviorTreeDefinition {
+            id: "greeting_detection".to_string(),
+            name: "Greeting Detection Tree".to_string(),
+            description: Some("Detects greeting intent".to_string()),
+            root_node_id: "root".to_string(),
+            nodes,
+        }
     }
-}
+
+    fn create_workflow_with_pbt(pbt_id: &str) -> WorkflowDefinition {
+        let mut nodes = HashMap::new();
+        
+        nodes.insert("start".to_string(), WorkflowNode {
+            id: "start".to_string(),
+            node_type: "Start".to_string(),
+            config: serde_json::json!({}),
+        });
+        
+        nodes.insert("pbt_node".to_string(), WorkflowNode {
+            id: "pbt_node".to_string(),
+            node_type: "ExecuteBehaviorTree".to_string(),
+            config: serde_json::json!({
+                "tree_id": pbt_id,
+                "context_mapping": {
+                    "input_message": "{{trigger.message}}"
+                }
+            }),
+        });
+        
+        nodes.insert("end".to_string(), WorkflowNode {
+            id: "end".to_string(),
+            node_type: "End".to_string(),
+            config: serde_json::json!({}),
+        });
+
+        let edges = vec![
+            WorkflowEdge {
+                source_node_id: "start".to_string(),
+                target_node_id: "pbt_node".to_string(),
+                condition: None,
+            },
+            WorkflowEdge {
+                source_node_id: "pbt_node".to_string(),
+                target_node_id: "end".to_string(),
+                condition: None,
+            },
+        ];
+
+        WorkflowDefinition {
+            id: "test_workflow".to_string(),
+            name: "Test Workflow".to_string(),
+            description: "Workflow that uses PBT".to_string(),
+            nodes,
+            edges,
+        }
+    }

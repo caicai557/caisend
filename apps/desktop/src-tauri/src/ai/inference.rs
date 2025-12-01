@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::path::Path;
-use tokenizers::Tokenizer;
+// use tokenizers::Tokenizer;
 // use ort::session::Session;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};

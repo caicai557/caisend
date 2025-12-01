@@ -1,25 +1,22 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use std::collections::HashMap;
 use crate::domain::decision::behavior_tree::{BehaviorNode, NodeStatus, TreeState};
 use crate::infrastructure::ContextHub;
 use anyhow::Result;
+use async_recursion::async_recursion;
 
+/// PBT Engine: 管理多个账号的行为树执行
 pub struct PbtEngine {
     context_hub: Arc<ContextHub>,
-    // In-memory cache of active trees: account_id -> TreeState
-    active_states: Arc<RwLock<std::collections::HashMap<String, TreeState>>>,
+    active_states: Arc<RwLock<HashMap<String, TreeState>>>,
 }
-
-use futures::future::BoxFuture;
-use futures::FutureExt;
-
-use async_recursion::async_recursion;
 
 impl PbtEngine {
     pub fn new(context_hub: Arc<ContextHub>) -> Self {
         Self {
             context_hub,
-            active_states: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            active_states: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -29,7 +26,7 @@ impl PbtEngine {
         let initial_state = TreeState {
             tree_id: tree_id.to_string(),
             current_node_id: None,
-            context: std::collections::HashMap::new(),
+            context: HashMap::new(),
             status: "running".to_string(),
         };
         self.active_states.write().await.insert(account_id.to_string(), initial_state);
@@ -108,7 +105,6 @@ impl PbtEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     #[test]
     fn test_behavior_node_structure() {

@@ -54,3 +54,37 @@ impl Default for BtNodeType {
         BtNodeType::Sequence
     }
 }
+
+// --- Configuration Structs ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RetryConfig {
+    pub max_attempts: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimeoutConfig {
+    pub timeout_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepeaterConfig {
+    pub times: Option<u32>, // None means infinite
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WaitConfig {
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionConfig {
+    pub action_type: String,
+    pub params: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConditionConfig {
+    pub condition_type: String,
+    pub params: serde_json::Value,
+}

@@ -74,6 +74,7 @@ impl BehaviorTreeEngine {
             BtNodeType::Sequence => Self::execute_sequence(node, instance, definition, context).await?,
             BtNodeType::Selector => Self::execute_selector(node, instance, definition, context).await?,
             BtNodeType::RandomSelector => Self::execute_random_selector(node, instance, definition, context).await?,
+            BtNodeType::Parallel => Self::execute_parallel(node, instance, definition, context).await?,
             BtNodeType::Action => Self::execute_action(node, instance, context).await?,
             BtNodeType::Condition => Self::execute_condition(node, instance)?,
             BtNodeType::Wait => Self::execute_wait(node, instance)?,
@@ -644,6 +645,35 @@ impl BehaviorTreeEngine {
             Ok(child_status)
         } else {
             Ok(NodeStatus::Failure)
+        }
+    }
+
+    async fn execute_parallel(
+        node: &BtNode,
+        instance: &mut BehaviorTreeInstance,
+        definition: &BehaviorTreeDefinition,
+        context: &impl ActionContext,
+    ) -> Result<NodeStatus> {
+        let mut success_count = 0;
+        let mut failure_count = 0;
+        let mut running_count = 0;
+
+        for child_id in &node.children {
+            let child_status = Self::execute_node(child_id, instance, definition, context).await?;
+            match child_status {
+                NodeStatus::Success => success_count += 1,
+                NodeStatus::Failure => failure_count += 1,
+                NodeStatus::Running => running_count += 1,
+                NodeStatus::Skipped => {},
+            }
+        }
+
+        if failure_count > 0 {
+            Ok(NodeStatus::Failure)
+        } else if running_count > 0 {
+            Ok(NodeStatus::Running)
+        } else {
+            Ok(NodeStatus::Success)
         }
     }
 }

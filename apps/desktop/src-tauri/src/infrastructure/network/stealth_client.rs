@@ -68,8 +68,9 @@ impl StealthClient {
             .default_headers(headers)
             .timeout(Duration::from_secs(config.timeout_seconds))
             .http2_initial_stream_window_size(config.http2_settings.initial_stream_window_size)
-            .http2_initial_connection_window_size(config.http2_settings.initial_connection_window_size)
-            .http2_max_concurrent_streams(config.http2_settings.max_concurrent_streams);
+            .http2_initial_connection_window_size(config.http2_settings.initial_connection_window_size);
+            // Note: http2_max_concurrent_streams is not available in reqwest 0.11
+            // This setting would need to be handled at a lower level or via a different HTTP client
 
         // Set proxy if configured
         if let Some(proxy_url) = &config.proxy {

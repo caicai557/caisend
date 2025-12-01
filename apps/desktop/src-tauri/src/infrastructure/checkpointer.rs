@@ -121,6 +121,7 @@ mod tests {
                     status: InstanceStatus::Running.to_string(),
                     state_data: None,
                     next_execution_time: None,
+                    current_pbt_instance_id: None,
                     created_at: "2023-01-01T00:00:00Z".to_string(),
                     updated_at: "2023-01-01T00:00:00Z".to_string(),
                 };
@@ -170,6 +171,7 @@ mod tests {
             status: InstanceStatus::Running.to_string(),
             state_data: None,
             next_execution_time: None,
+            current_pbt_instance_id: None,
             created_at: Utc::now().to_rfc3339(),
             updated_at: Utc::now().to_rfc3339(),
         };
@@ -205,6 +207,7 @@ mod tests {
                     status: InstanceStatus::Running.to_string(),
                     state_data: None,
                     next_execution_time: None,
+                    current_pbt_instance_id: None,
                     created_at: Utc::now().to_rfc3339(),
                     updated_at: Utc::now().to_rfc3339(),
                 };

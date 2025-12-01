@@ -1,4 +1,4 @@
-use super::intent::{intents, IntentResult};
+use super::intent::intents;
 use super::intent_classifier::IntentClassifier;
 use anyhow::Result;
 

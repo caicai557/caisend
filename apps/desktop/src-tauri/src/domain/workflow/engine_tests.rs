@@ -114,6 +114,7 @@ mod tests {
             status: "Running".to_string(),
             state_data: Some("{}".to_string()),
             next_execution_time: None,
+            current_pbt_instance_id: None,
             created_at: Utc::now().to_rfc3339(),
             updated_at: Utc::now().to_rfc3339(),
         };
