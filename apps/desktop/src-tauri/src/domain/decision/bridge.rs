@@ -2,6 +2,7 @@ use crate::domain::behavior_tree::engine::{BehaviorTreeEngine, ActionContext};
 use crate::domain::behavior_tree::state::{BehaviorTreeInstance, TreeStatus};
 use crate::adapters::db::behavior_tree_repo::BehaviorTreeRepository;
 use crate::domain::ports::WorkflowRepositoryPort;
+use crate::infrastructure::PbtCheckpointer;
 use anyhow::Result;
 use std::sync::Arc;
 use std::collections::HashMap;
@@ -26,6 +27,7 @@ pub enum PbtTickResult {
 pub struct WorkflowPbtBridge {
     bt_repo: Arc<BehaviorTreeRepository>,
     workflow_repo: Arc<dyn WorkflowRepositoryPort>,
+    pbt_checkpointer: PbtCheckpointer,
 }
 
 impl WorkflowPbtBridge {
@@ -33,9 +35,11 @@ impl WorkflowPbtBridge {
         bt_repo: Arc<BehaviorTreeRepository>,
         workflow_repo: Arc<dyn WorkflowRepositoryPort>,
     ) -> Self {
+        let pbt_checkpointer = PbtCheckpointer::new(bt_repo.clone());
         Self {
             bt_repo,
             workflow_repo,
+            pbt_checkpointer,
         }
     }
 
@@ -103,6 +107,7 @@ impl WorkflowPbtBridge {
         match instance.status {
             TreeStatus::Completed => return Ok(PbtTickResult::Completed),
             TreeStatus::Failed => return Ok(PbtTickResult::Failed("PBT already failed".to_string())),
+            TreeStatus::Cancelled => return Ok(PbtTickResult::Failed("PBT cancelled".to_string())),
             TreeStatus::Running => {}
         }
         
@@ -129,6 +134,10 @@ impl WorkflowPbtBridge {
             TreeStatus::Failed => {
                 tracing::warn!("[Bridge] PBT {} failed", pbt_instance_id);
                 PbtTickResult::Failed("PBT execution failed".to_string())
+            }
+            TreeStatus::Cancelled => {
+                tracing::warn!("[Bridge] PBT {} cancelled", pbt_instance_id);
+                PbtTickResult::Failed("PBT cancelled".to_string())
             }
         };
         
