@@ -1,0 +1,426 @@
+/* Teleflow Desktop - Global Styles
+ * Optimized for 60fps smooth animations following 2025 best practices
+ */
+
+:root {
+  /* Color Palette - Dark Theme */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --accent-primary: #e94560;
+  --accent-secondary: #533483;
+  --accent-gradient: linear-gradient(135deg, #e94560 0%, #533483 100%);
+  --text-primary: #e4e4e4;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --success: #00d26a;
+  --warning: #ffc107;
+  --error: #ff4444;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* 2025 Best Practice: Use cubic-bezier for natural motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Optimized transition durations */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 400ms;
+
+  /* Shadows with GPU-friendly blur optimization */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(233, 69, 96, 0.3);
+}
+
+/* Reset with performance optimizations */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  /* Enable smooth scrolling with reduced motion respect */
+  scroll-behavior: smooth;
+  /* Force GPU rendering for main container */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  /* Prevent layout thrashing */
+  contain: strict;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
+  color: var(--text-primary);
+  line-height: 1.5;
+  /* Force GPU layer for background */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 2025 Best Practice: Optimized scrollbar with GPU hints */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  /* Smooth thumb resize */
+  transition: background var(--duration-fast) var(--ease-out-quart);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary);
+}
+
+/* Button Base - GPU accelerated */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  gap: var(--spacing-xs);
+  /* GPU acceleration */
+  transform: translateZ(0);
+  /* Optimize for animation */
+  will-change: transform, box-shadow;
+  /* Smooth transition */
+  transition: 
+    transform var(--duration-fast) var(--spring),
+    box-shadow var(--duration-fast) var(--ease-out-quart),
+    background var(--duration-fast) var(--ease-out-quart);
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(233, 69, 96, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
+}
+
+.btn-primary:active {
+  transform: translateY(0) translateZ(0);
+  box-shadow: 0 2px 8px rgba(233, 69, 96, 0.3);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--accent-secondary);
+  transform: translateY(-1px) translateZ(0);
+}
+
+/* Card Component - GPU optimized glassmorphism */
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  /* GPU-accelerated blur */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  /* Containment for performance */
+  contain: layout style;
+  /* GPU layer */
+  transform: translateZ(0);
+}
+
+/* Status Indicators - with pulse animation */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  /* GPU layer for animation */
+  transform: translateZ(0);
+}
+
+.status-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.status-dot.offline {
+  background: var(--error);
+}
+
+.status-dot.busy {
+  background: var(--warning);
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+/* 2025 Optimized Keyframes - Use transform/opacity only */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1) translateZ(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg) translateZ(0);
+  }
+  to {
+    transform: rotate(360deg) translateZ(0);
+  }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fadeIn var(--duration-normal) var(--ease-out-expo) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale var(--duration-normal) var(--ease-out-expo) forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft var(--duration-normal) var(--ease-out-expo) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight var(--duration-normal) var(--ease-out-expo) forwards;
+}
+
+.animate-pulse {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Stagger animation delays for lists */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+
+/* Focus visible for accessibility + style */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Interactive element optimization */
+button, 
+a, 
+select, 
+input,
+[role="button"] {
+  /* Prevent tap delay on mobile */
+  touch-action: manipulation;
+  /* Hint browser about interactivity */
+  will-change: auto;
+}
+
+button:active,
+[role="button"]:active {
+  transform: scale(0.98) translateZ(0);
+}
+
+/* GPU hints for frequently animated elements */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth scroll container */
+.smooth-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  /* Momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Performance containment utilities */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-strict {
+  contain: strict;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass effect utility */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform var(--duration-fast) var(--spring),
+              box-shadow var(--duration-fast) var(--ease-out-quart);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px) translateZ(0);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Press effect */
+.press-effect:active {
+  transform: scale(0.97) translateZ(0);
+}

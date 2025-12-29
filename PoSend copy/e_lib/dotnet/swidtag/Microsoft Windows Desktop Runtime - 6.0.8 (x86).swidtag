@@ -1,0 +1,5 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SoftwareIdentity tagId="wix:bundle/95474EF5-2654-4AE1-A60A-B68931B0E10D" name="Microsoft Windows Desktop Runtime - 6.0.8 (x86)" version="6.0.8.31518" versionScheme="multipartnumeric" xmlns="http://standards.iso.org/iso/19770/-2/2015/schema.xsd">
+  <Entity name="Microsoft Corporation" regid="microsoft.com" role="softwareCreator tagCreator" />
+  <Meta persistentId="wix:bundle.upgrade/DA65001D-5316-7E90-1BB6-07698AEB9587" />
+</SoftwareIdentity>

@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  /* HSL Color System for Semantic Theming */
+  --color-primary: 211 100% 50%; /* #007AFF (Apple Blue) */
+  --color-success: 142 76% 36%; /* #10B981 */
+  --color-warning: 38 92% 50%; /* #F59E0B */
+  --color-danger: 0 84% 60%; /* #EF4444 */
+
+  /* Backgrounds */
+  --bg-app: 0 0% 100%;
+  --bg-sidebar: 240 5% 96%;
+  --bg-card: 0 0% 100%;
+  --bg-hover: 240 5% 92%;
+
+  /* Text */
+  --text-primary: 222 47% 11%; /* #0F172A */
+  --text-secondary: 215 16% 47%; /* #64748B */
+  --text-tertiary: 215 16% 65%; /* #94A3B8 */
+/* Drag Region */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Animations */
+.transition-all-200 {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

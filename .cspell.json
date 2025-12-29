@@ -1,0 +1,19 @@
+{
+  "version": "0.2",
+  "language": "en,zh",
+  "words": [
+    "teleflow",
+    "ractor",
+    "serde",
+    "thiserror",
+    "POSEND",
+    "traneasy",
+    "tokio",
+    "rustup",
+    "rustc",
+    "chrono",
+    "toml",
+    "reqwest"
+  ],
+  "ignorePaths": ["node_modules/**", "target/**", "dist/**", ".git/**"]
+}
